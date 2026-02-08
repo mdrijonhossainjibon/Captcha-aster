@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/landing/navbar"
+ 
 import { HeroSection } from "@/components/landing/hero-section"
 import { FeaturesSection } from "@/components/landing/features-section"
 import { StatsSection } from "@/components/landing/stats-section"
@@ -12,6 +13,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-14 sm:pt-16">
+       
         <HeroSection />
         <FeaturesSection />
         <StatsSection />

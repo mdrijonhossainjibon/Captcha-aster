@@ -36,8 +36,8 @@ export async function GET() {
         // Get active package
         const activePackage = await Package.findOne({ userId, status: 'active' })
 
-        console.log(user)
-        // Calculate time until reset (midnight)
+     
+        
         const now = new Date()
         const tomorrow = new Date(today)
         tomorrow.setDate(tomorrow.getDate() + 1)

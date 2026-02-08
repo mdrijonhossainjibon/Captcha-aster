@@ -4,14 +4,18 @@ import { NextResponse } from "next/server";
 
 export default withAuth(
     function middleware(req) {
+ 
         const token = req.nextauth.token;
         const pathname = req.nextUrl.pathname;
         const isAdminRoute = pathname.startsWith('/admin');
 
-        // Redirect non-admin users away from admin routes
+
+      /*   // Redirect non-admin users away from admin routes
         if (isAdminRoute && !token?.isAdmin) {
-            return NextResponse.redirect(new URL('/', req.url));
+            return NextResponse.redirect(new URL('/dashboard', req.url));
         }
+
+       */
 
         return NextResponse.next();
     },
@@ -20,15 +24,21 @@ export default withAuth(
             signIn: '/auth/login',
         },
         callbacks: {
+            
             authorized: ({ token }) => !!token,
         },
     }
 );
 
 export const config = {
-    // Protect admin routes
+    // Protect admin and user routes
     matcher: [
         "/admin/:path*",
-        "/api/admin/:path*"
+        "/api/admin/:path*",
+        "/dashboard/:path*",
+        "/api/dashboard/:path*",
+        "/profile/:path*",
+        "/api/crypto/:path*",
+        "/api/pricing/:path*"
     ]
 };

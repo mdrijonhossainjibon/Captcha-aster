@@ -64,21 +64,8 @@ export async function POST(request: NextRequest) {
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + pricingPlan.validityDays)
 
-        // Determine credits based on plan type
-        let credits = 0
-        switch (pricingPlan.type) {
-            case 'count':
-                credits = pricingPlan.count || 0
-                break
-            case 'daily':
-                // Daily limit * validity days
-                credits = (pricingPlan.dailyLimit || 0) * pricingPlan.validityDays
-                break
-            case 'minute':
-                // Rate limit per minute * minutes in validity period
-                credits = (pricingPlan.rateLimit || 0) * 60 * 24 * pricingPlan.validityDays
-                break
-        }
+     
+        
 
         // Create or Update subscription package
         const packageData = {
@@ -88,7 +75,7 @@ export async function POST(request: NextRequest) {
             name: `${pricingPlan.type.toUpperCase()} - ${pricingPlan.code}`,
             price: pricingPlan.price,
             billingCycle: pricingPlan.validityDays > 7 ? 'monthly' : 'monthly',
-            credits,
+            credits : pricingPlan.count,
             creditsUsed: 0,
             features: [
                 `${pricingPlan.recognition} Recognition`,
@@ -122,7 +109,7 @@ export async function POST(request: NextRequest) {
                 subscriptionId: subscription._id.toString(),
                 planCode: pricingPlan.code,
                 price: pricingPlan.priceDisplay,
-                credits,
+                credits : pricingPlan.count,
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
             },

@@ -7,23 +7,7 @@ export async function GET(request: Request) {
     try {
         await connectDB()
 
-   /*    await PricingPlan.create({
-  "code": "DAILY_100K",
-  "type": "daily",
-  "price": 96.99,
-  "priceDisplay": "$96.99",
-  "validity": "30 days",
-  "validityDays": 30,
-  "recognition": "Up to 5,000 captchas per day",
-  "dailyLimit": 96000,
-  "isActive": true,
-  "isPromo": true,
-  "sortOrder": 11,
-  "createdAt": "2026-02-01T00:00:00.000Z",
-  "updatedAt": "2026-02-06T12:30:00.000Z"
-}
-) */
- 
+        
 
         const { searchParams } = new URL(request.url)
         const type = searchParams.get('type')
