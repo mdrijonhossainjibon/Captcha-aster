@@ -46,7 +46,7 @@ export async function GET() {
         const minutesUntilReset = Math.floor((msUntilReset % (1000 * 60 * 60)) / (1000 * 60))
 
         // Default values
-        let statsTotal = 1000
+        let statsTotal = 0
         let statsUsed = todayUsage?.totalRequests || 0
         let resetsIn: string | null = `${hoursUntilReset}h ${minutesUntilReset}m`
 
