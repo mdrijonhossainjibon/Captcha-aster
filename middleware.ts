@@ -1,34 +1,29 @@
-import { withAuth } from "next-auth/middleware";
-import type { NextRequestWithAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server'
 
-export default withAuth(
-    function middleware(req) {
- 
-        const token = req.nextauth.token;
-        const pathname = req.nextUrl.pathname;
-        const isAdminRoute = pathname.startsWith('/admin');
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
+  const publicPaths = [
+    '/auth/:path',
+    '/api/auth/:path',
+  ]
 
-      /*   // Redirect non-admin users away from admin routes
-        if (isAdminRoute && !token?.isAdmin) {
-            return NextResponse.redirect(new URL('/dashboard', req.url));
-        }
+  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
 
-       */
+  console.log(isPublicPath)
+  if (isPublicPath) {
+    return NextResponse.next()
+  }
+  
+  
+  const token = request.cookies.get('next-auth.session-token')?.value
 
-        return NextResponse.next();
-    },
-    {
-        pages: {
-            signIn: '/auth/login',
-        },
-        callbacks: {
-            
-            authorized: ({ token }) => !!token,
-        },
-    }
-);
+  if (!token) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
     // Protect admin and user routes
