@@ -1,165 +1,499 @@
 'use client'
 
-import { useState } from 'react'
-import { AdminLayout } from '@/components/admin-layout'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CreditCard, Download, Search, Filter, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
-import { useSearchParams } from 'next/navigation'
+import { message } from 'antd'
+import {
+  CreditCard,
+  Download,
+  Search,
+  Filter,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Loader2,
+  RefreshCw,
+  Clock,
+  ExternalLink
+} from 'lucide-react'
+
+interface DepositRecord {
+  id: string
+  transactionId: string
+  user: string
+  userName: string
+  amount: number
+  amountUSD: number
+  crypto: string
+  network: string
+  method: string
+  status: string
+  txHash?: string
+  address: string
+  confirmations: number
+  requiredConfirmations: number
+  fee: string
+  notes?: string
+  createdAt: string
+  createdAtFull: string
+}
+
+interface Stats {
+  total: number
+  completed: number
+  pending: number
+  confirming: number
+  failed: number
+}
 
 export default function TopupHistoryPage() {
+  const [deposits, setDeposits] = useState<DepositRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const searchParams = useSearchParams()
-
-  const transactions = [
-    { id: 'TXN-001', user: 'john@example.com', amount: 50.00, credits: 10000, method: 'Card', status: 'completed', date: '2024-02-15', type: 'topup' },
-    { id: 'TXN-002', user: 'sarah@example.com', amount: 100.00, credits: 25000, method: 'Bank Transfer', status: 'completed', date: '2024-02-14', type: 'topup' },
-    { id: 'TXN-003', user: 'mike@example.com', amount: 25.00, credits: 5000, method: 'Card', status: 'failed', date: '2024-02-14', type: 'topup' },
-    { id: 'TXN-004', user: 'emma@example.com', amount: 250.00, credits: 75000, method: 'Crypto', status: 'pending', date: '2024-02-13', type: 'topup' },
-    { id: 'TXN-005', user: 'alex@example.com', amount: 150.00, credits: 35000, method: 'Card', status: 'completed', date: '2024-02-13', type: 'topup' },
-    { id: 'TXN-006', user: 'lisa@example.com', amount: 75.00, credits: 15000, method: 'PayPal', status: 'completed', date: '2024-02-12', type: 'topup' },
-  ]
-
-  const stats = [
-    { label: 'Total Topups', value: transactions.length, color: 'text-blue-600' },
-    { label: 'Completed', value: transactions.filter(t => t.status === 'completed').length, color: 'text-green-600' },
-    { label: 'Pending', value: transactions.filter(t => t.status === 'pending').length, color: 'text-yellow-600' },
-    { label: 'Failed', value: transactions.filter(t => t.status === 'failed').length, color: 'text-red-600' },
-  ]
-
-  const filteredTransactions = transactions.filter(t => {
-    const matchesSearch = t.user.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         t.id.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || t.status === filterStatus
-    return matchesSearch && matchesStatus
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    confirming: 0,
+    failed: 0
+  })
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPrevPage: false
   })
 
+  // Fetch deposits from API
+  useEffect(() => {
+    fetchDeposits()
+  }, [currentPage, itemsPerPage, filterStatus])
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1)
+    } else {
+      fetchDeposits()
+    }
+  }, [searchTerm, filterStatus])
+
+  const fetchDeposits = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (filterStatus !== 'all') params.append('status', filterStatus)
+      params.append('page', currentPage.toString())
+      params.append('limit', itemsPerPage.toString())
+
+      const response = await fetch(`/api/admin/deposits?${params.toString()}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setDeposits(data.deposits)
+        setStats(data.stats)
+        setPagination(data.pagination)
+      } else {
+        message.error(data.error || 'Failed to fetch deposits')
+      }
+    } catch (error) {
+      console.error('Error fetching deposits:', error)
+      message.error('Failed to fetch deposits')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleExportCSV = () => {
+    // Create CSV content
+    const headers = ['Transaction ID', 'User', 'Amount', 'USD Value', 'Crypto', 'Network', 'Status', 'Date']
+    const rows = deposits.map(d => [
+      d.transactionId,
+      d.user,
+      d.amount,
+      d.amountUSD,
+      d.crypto,
+      d.network,
+      d.status,
+      d.createdAt
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `deposit-history-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    message.success('CSV exported successfully')
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-500/20 text-green-700'
+      case 'confirming':
+        return 'bg-blue-500/20 text-blue-700'
+      case 'pending':
+        return 'bg-yellow-500/20 text-yellow-700'
+      case 'failed':
+        return 'bg-red-500/20 text-red-700'
+      default:
+        return 'bg-gray-500/20 text-gray-700'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <ArrowDownLeft className="w-3 h-3" />
+      case 'confirming':
+      case 'pending':
+        return <Clock className="w-3 h-3" />
+      case 'failed':
+        return <ArrowUpRight className="w-3 h-3" />
+      default:
+        return <CreditCard className="w-3 h-3" />
+    }
+  }
+
+  const getExplorerUrl = (network: string, txHash: string) => {
+    const networkLower = network.toLowerCase()
+
+    // Ethereum and EVM chains
+    if (networkLower.includes('ethereum') || networkLower.includes('eth')) {
+      return `https://etherscan.io/tx/${txHash}`
+    }
+    if (networkLower.includes('bsc') || networkLower.includes('binance')) {
+      return `https://bscscan.com/tx/${txHash}`
+    }
+    if (networkLower.includes('polygon') || networkLower.includes('matic')) {
+      return `https://polygonscan.com/tx/${txHash}`
+    }
+    if (networkLower.includes('arbitrum')) {
+      return `https://arbiscan.io/tx/${txHash}`
+    }
+    if (networkLower.includes('optimism')) {
+      return `https://optimistic.etherscan.io/tx/${txHash}`
+    }
+    if (networkLower.includes('avalanche') || networkLower.includes('avax')) {
+      return `https://snowtrace.io/tx/${txHash}`
+    }
+
+    // Bitcoin
+    if (networkLower.includes('bitcoin') || networkLower.includes('btc')) {
+      return `https://blockchain.com/btc/tx/${txHash}`
+    }
+
+    // Tron
+    if (networkLower.includes('tron') || networkLower.includes('trx')) {
+      return `https://tronscan.org/#/transaction/${txHash}`
+    }
+
+    // Solana
+    if (networkLower.includes('solana') || networkLower.includes('sol')) {
+      return `https://solscan.io/tx/${txHash}`
+    }
+
+    // Default to etherscan
+    return `https://etherscan.io/tx/${txHash}`
+  }
+
+  const statsData = [
+    { label: 'Total Deposits', value: stats.total, color: 'text-blue-600' },
+    { label: 'Completed', value: stats.completed, color: 'text-green-600' },
+    { label: 'Confirming', value: stats.confirming, color: 'text-blue-600' },
+    { label: 'Pending', value: stats.pending, color: 'text-yellow-600' },
+    { label: 'Failed', value: stats.failed, color: 'text-red-600' },
+  ]
+
   return (
-    <AdminLayout>
-      <div className="p-8">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-4xl font-bold text-foreground mb-2">Topup Transaction History</h1>
-                <p className="text-muted-foreground">View all user credit topup transactions</p>
-              </div>
-              <Button className="gap-2 bg-amber-500 hover:bg-amber-600">
-                <Download className="w-4 h-4" />
-                Export CSV
-              </Button>
-            </div>
+    <div>
+      {/* Action Buttons */}
+      <div className="flex items-center justify-end gap-3 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchDeposits}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+        <Button
+          className="gap-2 bg-amber-500 hover:bg-amber-600"
+          onClick={handleExportCSV}
+          disabled={deposits.length === 0}
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
+      </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {stats.map((stat, index) => (
-                <Card key={index} className="border-border/50 bg-secondary/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-                        <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                      </div>
-                      <CreditCard className={`w-8 h-8 ${stat.color}/60`} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by user or transaction ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-2 rounded-lg border border-border bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-muted-foreground" />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-border bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="all">All Status</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="failed">Failed</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Transactions Table */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle>Transactions ({filteredTransactions.length})</CardTitle>
-              <CardDescription>All topup transactions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Transaction ID</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">User</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Amount</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Credits</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Method</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTransactions.map((transaction) => (
-                      <tr key={transaction.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
-                        <td className="py-3 px-4">
-                          <p className="text-sm font-medium text-foreground">{transaction.id}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm text-foreground">{transaction.user}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm font-semibold text-foreground">${transaction.amount.toFixed(2)}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm text-muted-foreground">{transaction.credits.toLocaleString()}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-700">
-                            {transaction.method}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${
-                            transaction.status === 'completed'
-                              ? 'bg-green-500/20 text-green-700'
-                              : transaction.status === 'pending'
-                              ? 'bg-yellow-500/20 text-yellow-700'
-                              : 'bg-red-500/20 text-red-700'
-                          }`}>
-                            {transaction.status === 'completed' && <ArrowDownLeft className="w-3 h-3" />}
-                            {transaction.status === 'pending' && <CreditCard className="w-3 h-3" />}
-                            {transaction.status === 'failed' && <ArrowUpRight className="w-3 h-3" />}
-                            {transaction.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm text-muted-foreground">{transaction.date}</p>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {statsData.map((stat, index) => (
+          <Card key={index} className="border-border/50 bg-secondary/50">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+                <CreditCard className={`w-8 h-8 ${stat.color}/60`} />
               </div>
             </CardContent>
           </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search by user email or transaction hash..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2 rounded-lg border border-border bg-secondary text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
         </div>
-      </AdminLayout>
-    )
-  }
+        <div className="flex items-center gap-2">
+          <Filter className="w-5 h-5 text-muted-foreground" />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-border bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+          >
+            <option value="all">All Status</option>
+            <option value="completed">Completed</option>
+            <option value="confirming">Confirming</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Transactions Table */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle>Transactions ({pagination.total})</CardTitle>
+          <CardDescription>All deposit transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : deposits.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No deposits found
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Transaction ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">User</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Amount</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">USD Value</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Method</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Confirmations</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-foreground">Date</th>
+                    <th className="text-center py-3 px-4 font-semibold text-foreground">Explorer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deposits.map((deposit, index) => (
+                    <tr
+                      key={deposit.id}
+                      className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
+                      style={{
+                        opacity: 0,
+                        animation: `slideInUp 0.5s ease-out ${index * 50}ms forwards`,
+                      }}
+                    >
+                      <td className="py-3 px-4">
+                        <p className="text-sm font-medium text-foreground font-mono">
+                          {deposit.transactionId}
+                        </p>
+                        {deposit.txHash && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                            {deposit.txHash}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-sm text-foreground">{deposit.user}</p>
+                        {deposit.userName !== 'N/A' && (
+                          <p className="text-xs text-muted-foreground">{deposit.userName}</p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-sm font-semibold text-foreground">
+                          {deposit.amount.toFixed(4)} {deposit.crypto}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-sm font-semibold text-green-600">
+                          ${deposit.amountUSD.toFixed(2)}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-700">
+                          {deposit.method}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-sm text-muted-foreground">
+                          {deposit.confirmations}/{deposit.requiredConfirmations}
+                        </p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(deposit.status)}`}>
+                          {getStatusIcon(deposit.status)}
+                          {deposit.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="text-sm text-muted-foreground">{deposit.createdAt}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-center">
+                          {deposit.txHash ? (
+                            <a
+                              href={getExplorerUrl(deposit.network, deposit.txHash)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {!isLoading && deposits.length > 0 && (
+        <div className="mt-6 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, pagination.total)} of {pagination.total} deposits
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Items per page selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rows per page:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1.5 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Page navigation */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={!pagination.hasPrevPage}
+                className="h-8 px-3"
+              >
+                Previous
+              </Button>
+
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  let pageNum
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1
+                  } else if (currentPage >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i
+                  } else {
+                    pageNum = currentPage - 2 + i
+                  }
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {pageNum}
+                    </Button>
+                  )
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                disabled={!pagination.hasNextPage}
+                className="h-8 px-3"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  )
+}

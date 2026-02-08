@@ -44,15 +44,15 @@ export function HowItWorks() {
   }, [])
 
   return (
-    <section id="how-it-works" className="py-24">
+    <section id="how-it-works" className="py-16 sm:py-20 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             How It Works
           </span>
-          <h2 className="text-4xl font-bold text-foreground mb-4">Get Started in Minutes</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 sm:mb-4">Get Started in Minutes</h2>
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
             Simple setup, powerful results. Start solving captchas automatically in just 4 easy steps.
           </p>
         </div>
@@ -62,7 +62,7 @@ export function HowItWorks() {
           {/* Connection line */}
           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2" />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 relative">
             {steps.map((step, index) => (
               <div
                 key={step.title}
@@ -70,17 +70,17 @@ export function HowItWorks() {
                 style={{ transitionDelay: `${index * 200}ms` }}
               >
                 {/* Number badge */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center z-10">
+                <div className="absolute -top-2 sm:-top-3 left-1/2 -translate-x-1/2 w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-primary text-primary-foreground text-xs sm:text-sm font-bold flex items-center justify-center z-10">
                   {index + 1}
                 </div>
 
                 {/* Icon */}
-                <div className="w-20 h-20 rounded-2xl bg-card border border-border flex items-center justify-center mb-6 relative z-10">
-                  <step.icon className="w-10 h-10 text-primary" />
+                <div className="w-16 sm:w-20 h-16 sm:h-20 rounded-xl sm:rounded-2xl bg-card border border-border flex items-center justify-center mb-4 sm:mb-6 relative z-10">
+                  <step.icon className="w-8 sm:w-10 h-8 sm:h-10 text-primary" />
                 </div>
 
-                <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{step.title}</h3>
+                <p className="text-sm sm:text-base text-muted-foreground">{step.description}</p>
               </div>
             ))}
           </div>

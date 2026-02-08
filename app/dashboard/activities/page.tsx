@@ -5,9 +5,9 @@ import { DashboardActivitiesContent } from '@/components/dashboard-activities-co
 export default function DashboardActivitiesPage() {
   return (
     <Suspense fallback={null}>
-      <DashboardLayout>
+ 
         <DashboardActivitiesContent />
-      </DashboardLayout>
+ 
     </Suspense>
   )
 }

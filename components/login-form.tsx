@@ -10,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 
+import { signIn } from 'next-auth/react'
+
 type LoginStep = 'credentials' | 'otp' | 'success'
 
 export function LoginForm() {
@@ -24,6 +26,7 @@ export function LoginForm() {
   const [timer, setTimer] = useState(300)
   const [resendDisabled, setResendDisabled] = useState(true)
   const [twoFaEnabled, setTwoFaEnabled] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100)
@@ -50,30 +53,42 @@ export function LoginForm() {
   const handleSubmitCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    console.log('[v0] Submitting credentials for:', email)
+    setErrorMessage('')
 
-    // Simulate API call to verify credentials and check 2FA status
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
 
-    // Check if user has 2FA enabled (simulated check)
-    const has2FA = Math.random() > 0.5 // Simulated 50% chance of 2FA enabled
-    console.log('[v0] User 2FA status:', has2FA)
+      if (result?.error === '2FA_REQUIRED') {
+        // If 2FA is needed, we need to trigger the OTP email first
+        // Usually you'd have an API to send the OTP separately
+        await fetch('/api/auth/resend-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
 
-    if (has2FA) {
-      // If 2FA is enabled, proceed to OTP verification
-      setTwoFaEnabled(true)
-      setStep('otp')
-      setTimer(300)
-      setResendDisabled(true)
-      console.log('[v0] 2FA enabled - sending OTP to:', email)
-    } else {
-      // If 2FA is disabled, go directly to success
-      setTwoFaEnabled(false)
-      setStep('success')
-      console.log('[v0] 2FA disabled - logging in directly')
+        setTwoFaEnabled(true)
+        setStep('otp')
+        setTimer(300)
+        setResendDisabled(true)
+      } else if (result?.error) {
+        setErrorMessage(result.error === 'CredentialsSignin' ? 'Invalid email or password' : result.error)
+      } else {
+        setStep('success')
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setErrorMessage('An error occurred during login.')
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -102,22 +117,64 @@ export function LoginForm() {
     if (otpCode.length !== 6) return
 
     setIsLoading(true)
-    console.log('[v0] Verifying OTP:', otpCode)
-    // Simulate API call to verify OTP
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setStep('success')
+    setErrorMessage('')
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        otp: otpCode,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setErrorMessage('Invalid verification code')
+      } else {
+        setStep('success')
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error)
+      setErrorMessage('An error occurred during verification.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleResendOtp = async () => {
     setIsLoading(true)
     setResendDisabled(true)
-    console.log('[v0] Resending OTP to email:', email)
-    // Simulate API call to resend OTP
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    setOtp(['', '', '', '', '', ''])
-    setTimer(300)
+
+    try {
+      const response = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to resend OTP')
+        setResendDisabled(false)
+        setIsLoading(false)
+        return
+      }
+
+      console.log('✅ OTP resent successfully')
+      setOtp(['', '', '', '', '', ''])
+      setTimer(300)
+    } catch (error) {
+      console.error('Resend OTP error:', error)
+      alert('An error occurred while resending OTP. Please try again.')
+      setResendDisabled(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const formatTime = (seconds: number) => {
@@ -166,6 +223,12 @@ export function LoginForm() {
             {step === 'otp' && 'Enter the verification code sent to your email'}
             {step === 'success' && 'Welcome back! Redirecting...'}
           </p>
+
+          {errorMessage && (
+            <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium animate-in fade-in slide-in-from-top-1">
+              {errorMessage}
+            </div>
+          )}
         </div>
 
         {/* Step 1: Credentials */}
@@ -221,7 +284,7 @@ export function LoginForm() {
 
             <div className="flex items-center justify-between">
               <div></div>
-              <Link href="/forgot-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
+              <Link href="/auth/forgot-password" className="text-sm text-primary hover:text-primary/80 transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -379,6 +442,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
                 className="h-12 border-border hover:bg-secondary/50 hover:border-primary/30 transition-all bg-transparent"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -404,6 +468,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
                 className="h-12 border-border hover:bg-secondary/50 hover:border-primary/30 transition-all bg-transparent"
               >
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
@@ -419,7 +484,7 @@ export function LoginForm() {
         {step === 'credentials' && (
           <p className="text-center text-sm text-muted-foreground mt-6 relative z-10">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
+            <Link href="/auth/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
               Create account
             </Link>
           </p>

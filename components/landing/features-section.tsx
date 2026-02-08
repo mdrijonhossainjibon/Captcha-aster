@@ -66,34 +66,34 @@ export function FeaturesSection() {
   }, [])
 
   return (
-    <section id="features-section" className="py-24 bg-secondary/30">
+    <section id="features-section" className="py-16 sm:py-20 lg:py-24 bg-secondary/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="inline-block px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium mb-3 sm:mb-4">
             Features
           </span>
-          <h2 className="text-4xl font-bold text-foreground mb-4">Why Choose CaptchaⱮaster?</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 sm:mb-4">Why Choose CaptchaⱮaster?</h2>
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
             Industry-leading captcha solving with cutting-edge technology and unmatched reliability.
           </p>
         </div>
 
         {/* Features grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className={`group p-6 bg-card rounded-2xl border border-border hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
+              className={`group p-5 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
               style={{ transitionDelay: `${index * 100}ms` }}
             >
               <div
-                className={`w-14 h-14 rounded-xl ${feature.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
+                className={`w-12 sm:w-14 h-12 sm:h-14 rounded-lg sm:rounded-xl ${feature.bg} flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}
               >
-                <feature.icon className={`w-7 h-7 ${feature.color}`} />
+                <feature.icon className={`w-6 sm:w-7 h-6 sm:h-7 ${feature.color}`} />
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
+              <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">{feature.description}</p>
             </div>
           ))}
         </div>

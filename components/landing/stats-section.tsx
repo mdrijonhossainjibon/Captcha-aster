@@ -27,17 +27,17 @@ export function StatsSection() {
   }, [])
 
   return (
-    <section id="stats-section" className="py-20 bg-primary">
+    <section id="stats-section" className="py-12 sm:py-16 lg:py-20 bg-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
           {stats.map((stat, index) => (
             <div
               key={stat.label}
               className={`text-center transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}
               style={{ transitionDelay: `${index * 150}ms` }}
             >
-              <p className="text-4xl md:text-5xl font-bold text-primary-foreground mb-2">{stat.value}</p>
-              <p className="text-primary-foreground/80">{stat.label}</p>
+              <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-foreground mb-1 sm:mb-2">{stat.value}</p>
+              <p className="text-sm sm:text-base text-primary-foreground/80">{stat.label}</p>
             </div>
           ))}
         </div>

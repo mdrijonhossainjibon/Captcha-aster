@@ -36,48 +36,40 @@ import {
   Activity,
   Wallet,
   History,
+  Bot,
+  TrendingUp,
 } from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
 
 const mainNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/moderation", label: "Moderation", icon: Shield },
 ]
 
 const managementItems = [
   { href: "/admin/packages", label: "Packages", icon: Package },
-  { href: "/admin/pricing", label: "Pricing Plans", icon: DollarSign },
-  { href: "/admin/extensions", label: "Extensions", icon: Zap },
-  { href: "/admin/updates", label: "Updates", icon: RefreshCw },
-  { href: "/admin/wallet", label: "Wallet", icon: Wallet },
+  /*  { href: "/admin/wallet", label: "Wallet", icon: Wallet }, */
   { href: "/admin/topup-history", label: "Topup History", icon: History },
 ]
 
+const aiTrainingItems = [
+  { href: "/admin/ai-training/bots", label: "Bot Management", icon: Bot }
+]
+
 const systemItems = [
-  { href: "/admin/billing", label: "Billing & Revenue", icon: CreditCard },
+
   { href: "/admin/email", label: "Email Templates", icon: Mail },
-  { href: "/admin/api-keys", label: "API Keys", icon: Key },
-  { href: "/admin/webhooks", label: "Webhooks", icon: GitBranch },
-  { href: "/admin/database", label: "Database", icon: Database },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/database", label: "Database", icon: Database }
 ]
 
-const securityItems = [
-  { href: "/admin/security", label: "Security", icon: Lock },
-  { href: "/admin/audit-logs", label: "Audit Logs", icon: Activity },
-  { href: "/admin/permissions", label: "Permissions", icon: Shield },
-  { href: "/admin/2fa", label: "2FA Management", icon: Smartphone },
-]
 
-const supportItems = [
-  { href: "/admin/support", label: "Support Tickets", icon: AlertCircle },
-  { href: "/admin/documentation", label: "Documentation", icon: FileText },
-]
+
+
 
 export function AdminSidebar() {
+  const { data: session } = useSession()
   const pathname = usePathname()
-  const [isCollapsed, setIsCollapsed] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -123,7 +115,7 @@ export function AdminSidebar() {
         <span
           className={cn(
             "font-medium whitespace-nowrap transition-all duration-300",
-            isCollapsed ? "opacity-0 w-0" : "opacity-100",
+            "opacity-100",
           )}
         >
           {item.label}
@@ -144,7 +136,7 @@ export function AdminSidebar() {
       className={cn(
         "fixed left-0 top-0 h-screen z-40 flex flex-col transition-all duration-300 ease-in-out",
         "bg-card/80 backdrop-blur-xl border-r border-border",
-        isCollapsed ? "w-20" : "w-64",
+        "w-64",
       )}
     >
       {/* Header */}
@@ -157,46 +149,17 @@ export function AdminSidebar() {
             <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-card animate-pulse" />
           </div>
 
-          {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-foreground">
-                Admin<span className="text-destructive">Panel</span>
-              </span>
-              <span className="text-xs text-muted-foreground">Management</span>
-            </div>
-          )}
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-foreground">
+              Admin<span className="text-destructive">Panel</span>
+            </span>
+            <span className="text-xs text-muted-foreground">Management</span>
+          </div>
         </Link>
-
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn("p-2 rounded-lg hover:bg-secondary transition-colors", isCollapsed && "mx-auto")}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
       </div>
 
-      {/* Alert banner */}
-      {!isCollapsed && (
-        <div
-          className="mx-3 mt-4 p-3 rounded-xl bg-gradient-to-r from-red-50/50 to-orange-50/50 border border-red-200/30"
-          style={{
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? "scale(1)" : "scale(0.95)",
-            transitionDelay: "100ms",
-            transitionDuration: "400ms",
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Bell className="w-4 h-4 text-red-600" />
-            <span className="text-sm font-semibold text-foreground">System Alerts</span>
-          </div>
-          <p className="text-xs text-muted-foreground">5 pending reviews</p>
-        </div>
-      )}
+
+
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-6">
@@ -208,77 +171,50 @@ export function AdminSidebar() {
         </div>
 
         {/* Management Section */}
-        {!isCollapsed && (
-          <div>
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Management
-            </p>
-            <div className="space-y-2">
-              {managementItems.map((item, idx) => (
-                <NavItem key={item.href} item={item} index={mainNavItems.length + idx} />
-              ))}
-            </div>
+        <div>
+          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Management
+          </p>
+          <div className="space-y-2">
+            {managementItems.map((item, idx) => (
+              <NavItem key={item.href} item={item} index={mainNavItems.length + idx} />
+            ))}
           </div>
-        )}
+        </div>
+
+        {/* AI Training Section */}
+        <div>
+          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            AI Training
+          </p>
+          <div className="space-y-2">
+            {aiTrainingItems.map((item, idx) => (
+              <NavItem key={item.href} item={item} index={mainNavItems.length + managementItems.length + idx} />
+            ))}
+          </div>
+        </div>
 
         {/* System Section */}
-        {!isCollapsed && (
-          <div>
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              System
-            </p>
-            <div className="space-y-2">
-              {systemItems.map((item, idx) => (
-                <NavItem key={item.href} item={item} index={mainNavItems.length + managementItems.length + idx} />
-              ))}
-            </div>
+        <div>
+          <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            System
+          </p>
+          <div className="space-y-2">
+            {systemItems.map((item, idx) => (
+              <NavItem key={item.href} item={item} index={mainNavItems.length + managementItems.length + aiTrainingItems.length + idx} />
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* Security Section */}
-        {!isCollapsed && (
-          <div>
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Security
-            </p>
-            <div className="space-y-2">
-              {securityItems.map((item, idx) => (
-                <NavItem
-                  key={item.href}
-                  item={item}
-                  index={mainNavItems.length + managementItems.length + systemItems.length + idx}
-                />
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Support Section */}
-        {!isCollapsed && (
-          <div>
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Support
-            </p>
-            <div className="space-y-2">
-              {supportItems.map((item, idx) => (
-                <NavItem
-                  key={item.href}
-                  item={item}
-                  index={mainNavItems.length + managementItems.length + systemItems.length + securityItems.length + idx}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+
+
       </nav>
 
       {/* User section */}
       <div className="p-3 border-t border-border">
         <div
-          className={cn(
-            "flex items-center gap-3 p-3 rounded-xl bg-secondary/50 transition-all duration-300",
-            isCollapsed && "justify-center",
-          )}
+          className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 transition-all duration-300"
         >
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-sm font-bold">
@@ -287,21 +223,22 @@ export function AdminSidebar() {
             <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
           </div>
 
-          {!isCollapsed && (
-            <>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">Admin User</p>
-                <p className="text-xs text-muted-foreground">Super Admin</p>
-              </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">
+              {session?.user?.name || "Admin"}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              Super Admin
+            </p>
+          </div>
 
-              <Link
-                href="/login"
-                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </Link>
-            </>
-          )}
+          <button
+            onClick={() => signOut({ callbackUrl: '/auth/login' })}
+            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

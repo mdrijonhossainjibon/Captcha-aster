@@ -22,6 +22,9 @@ import {
   CreditCard,
   Key,
   Globe,
+  X,
+  MapPin,
+  Monitor,
 } from 'lucide-react'
 
 const activitiesData = [
@@ -137,6 +140,7 @@ export function DashboardActivitiesContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedItem, setSelectedItem] = useState<number | null>(null)
+  const [selectedActivity, setSelectedActivity] = useState<typeof activitiesData[0] | null>(null)
 
   useEffect(() => {
     setIsVisible(true)
@@ -198,7 +202,7 @@ export function DashboardActivitiesContent() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-8 lg:ml-20">
       {/* Header */}
       <div
         className="mb-8"
@@ -281,11 +285,10 @@ export function DashboardActivitiesContent() {
             <button
               key={tab}
               onClick={() => setActiveFilter(tab)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                activeFilter === tab
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${activeFilter === tab
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+                }`}
             >
               {tab}
             </button>
@@ -349,9 +352,8 @@ export function DashboardActivitiesContent() {
             return (
               <div
                 key={item.id}
-                className={`grid grid-cols-12 gap-4 p-4 items-center hover:bg-secondary/30 transition-colors cursor-pointer ${
-                  selectedItem === item.id ? 'bg-primary/5' : ''
-                }`}
+                className={`grid grid-cols-12 gap-4 p-4 items-center hover:bg-secondary/30 transition-colors cursor-pointer ${selectedItem === item.id ? 'bg-primary/5' : ''
+                  }`}
                 style={{
                   opacity: isVisible ? 1 : 0,
                   transform: isVisible ? 'translateX(0)' : 'translateX(-10px)',
@@ -377,13 +379,12 @@ export function DashboardActivitiesContent() {
                 </div>
                 <div className="col-span-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      item.status === 'success'
-                        ? 'bg-green-500/10 text-green-500'
-                        : item.status === 'failed'
-                          ? 'bg-destructive/10 text-destructive'
-                          : 'bg-amber-500/10 text-amber-500'
-                    }`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${item.status === 'success'
+                      ? 'bg-green-500/10 text-green-500'
+                      : item.status === 'failed'
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-amber-500/10 text-amber-500'
+                      }`}
                   >
                     {item.status === 'success' ? (
                       <CheckCircle2 className="w-3 h-3" />
@@ -401,7 +402,13 @@ export function DashboardActivitiesContent() {
                   {item.timestamp}
                 </div>
                 <div className="col-span-1 text-right">
-                  <button className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedActivity(item)
+                    }}
+                    className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     <Eye className="w-4 h-4" />
                   </button>
                 </div>
@@ -447,11 +454,10 @@ export function DashboardActivitiesContent() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                currentPage === page
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
-              }`}
+              className={`w-10 h-10 rounded-lg font-medium transition-all ${currentPage === page
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
+                }`}
             >
               {page}
             </button>

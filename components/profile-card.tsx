@@ -163,18 +163,7 @@ export function ProfileCard({ user = defaultUser }: ProfileCardProps) {
             </div>
           </div>
 
-          {/* API Key Section */}
-          <div className="mt-6 p-4 bg-secondary/50 rounded-xl border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground mb-1">API Key</p>
-                <code className="text-sm text-muted-foreground font-mono">{user.apiKey}</code>
-              </div>
-              <Button variant="ghost" size="sm" onClick={copyApiKey} className="hover:bg-primary/10">
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-          </div>
+        
         </div>
       </div>
     </div>

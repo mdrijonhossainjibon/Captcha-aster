@@ -1,84 +1,110 @@
 "use client"
 
-import { Suspense, useState } from "react"
-import { DashboardLayout } from "@/components/dashboard-layout"
+import { Suspense, useState, useEffect } from "react"
+
 import { Shield, Zap, Clock, TrendingUp, CheckCircle2, AlertCircle, ArrowUpRight, Sparkles, Bell, Puzzle, Download, Code, Zap as Plugin, User, BarChart3, Package, Key, Copy, RefreshCw, ToggleLeft, ToggleRight, Trash2, Gift, Star, Github, Eye, Wallet, Plus, X, Activity } from "lucide-react"
 import Link from "next/link"
 import { SkeletonStats, SkeletonGrid } from "@/components/skeletons"
 
 
-const onboardingTasks = [
-  { id: 1, label: "Setup Profile", completed: false, reward: "50" },
-  { id: 2, label: "Get API Key", completed: true, reward: "100" },
-  { id: 3, label: "Test Solve", completed: false, reward: "75" },
-  { id: 4, label: "Install Extension", completed: false, reward: "100" },
-  { id: 5, label: "Follow on X", completed: false, reward: "+50 • +200 • +500" },
-  { id: 6, label: "Star Github", completed: false, reward: "+100 • +500 • +1000" },
-  { id: 7, label: "Review Store", completed: false, reward: "+1000 • +5000 • +10000" },
-]
-
-const dailyUsage = {
-  used: 847,
-  total: 1000,
-  percentage: 84.7,
-  resetsIn: "4h 23m",
-  totalRequests: 847,
-  requestsLeft: 153
-}
-
-const packageInfo = {
-  name: "Premium Plan",
-  price: "$49.99/month",
-  features: ["10,000 credits/month", "Priority support", "All captcha types", "99.9% uptime"],
-  renewDate: "2024-03-15"
-}
-
-const apiKeys = [
-  { name: "Master Key", key: "pk_live_51H2K3...abc123", status: "active", lastUsed: "2 hours ago" },
-  { name: "Slot 2", key: "", status: "empty", lastUsed: "" },
-  { name: "Slot 3", key: "", status: "empty", lastUsed: "" },
-]
-
-const extensions = [
-  { label: "Chrome Extension", href: "/extensions/chrome", icon: Download, description: "Browser extension for Chrome" },
-  { label: "Firefox Add-on", href: "/extensions/firefox", icon: Download, description: "Browser extension for Firefox" },
-]
-
-const tasks = [
-  { id: 1, label: "Create API Key", reward: "+$0.10", completed: true },
-  { id: 2, label: "Solve First Captcha", reward: "+$0.05", completed: true },
-  { id: 3, label: "Add Funds", reward: "+$0.15", completed: false },
-  { id: 4, label: "Get Package", reward: "+$0.20", completed: false },
-]
-
-const walletBalance = 0.15
-
-const getGreeting = () => {
-  const hour = new Date().getHours()
-  if (hour < 12) return "Good morning"
-  if (hour < 18) return "Good afternoon"
-  return "Good evening"
-}
-
-const getCurrentDate = () => {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
 export default function DashboardPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null)
-  const [dashboardApiKeys, setDashboardApiKeys] = useState(apiKeys)
+  const [dashboardApiKeys, setDashboardApiKeys] = useState<any[]>([])
   const [autoRenew, setAutoRenew] = useState(true)
-  const [activePackage, setActivePackage] = useState<typeof packageInfo | null>(packageInfo)
+  const [activePackage, setActivePackage] = useState<any>(null)
   const [generatingKey, setGeneratingKey] = useState<string | null>(null)
-  const [showAlert, setShowAlert] = useState(true)
-  const [walletBalance, setWalletBalance] = useState(0.00)
-  const [tasks, setTasks] = useState(onboardingTasks)
+
+  const [dailyUsage, setDailyUsage] = useState<any>(null)
+  const [userData, setUserData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [countdown, setCountdown] = useState<string>("00:00:00")
+
+  // Fetch dashboard data
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+
+      // Fetch stats
+      const statsRes = await fetch('/api/dashboard/stats', {
+
+      })
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
+        setUserData(statsData.user)
+        setDailyUsage(statsData.dailyUsage)
+
+
+        if (statsData.package) {
+          setActivePackage(statsData.package)
+          setAutoRenew(statsData.package.autoRenew)
+        }
+      }
+
+      // Fetch API keys
+      const keysRes = await fetch('/api/dashboard/api-keys', {
+
+      })
+
+      if (keysRes.ok) {
+        const keysData = await keysRes.json()
+        setDashboardApiKeys(keysData.apiKeys)
+      }
+
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+      setLoading(false)
+    }
+  }
+
+  // Countdown timer logic
+  useEffect(() => {
+    if (!activePackage?.endDate) return
+
+    const calculateTimeLeft = () => {
+      const now = new Date()
+      const end = new Date(activePackage.endDate)
+      const diff = end.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setCountdown("00:00:00")
+        return
+      }
+
+      // Calculate Months
+      let months = (end.getFullYear() - now.getFullYear()) * 12 + (end.getMonth() - now.getMonth())
+      if (end.getDate() < now.getDate()) {
+        months--
+      }
+
+      // Calculate Days remaining after months
+      const tempDate = new Date(now)
+      tempDate.setMonth(tempDate.getMonth() + months)
+      const remainingDiff = end.getTime() - tempDate.getTime()
+
+      const d = Math.floor(remainingDiff / (1000 * 60 * 60 * 24))
+      const h = Math.floor((remainingDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const m = Math.floor((remainingDiff % (1000 * 60 * 60)) / (1000 * 60))
+      const s = Math.floor((remainingDiff % (1000 * 60)) / 1000)
+
+      let res = ""
+      if (months > 0) res += `${months}mo `
+      if (d > 0 || months > 0) res += `${d}d `
+
+      res += `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+
+      setCountdown(res)
+    }
+
+    calculateTimeLeft()
+    const timer = setInterval(calculateTimeLeft, 1000)
+    return () => clearInterval(timer)
+  }, [activePackage?.endDate])
 
   // Get current date and greeting
   const getGreeting = () => {
@@ -103,285 +129,333 @@ export default function DashboardPage() {
     }
   }
 
-  const handleRegenerateKey = async (keyName: string) => {
-    if (regeneratingKey) return
-    setRegeneratingKey(keyName)
+  const handleGenerateKey = async (slotName: string) => {
+    // If regenerating, we need the key Name, else it's a new slot
+    const finalName = slotName.startsWith('Slot') ? (slotName === 'Slot 2' ? 'API Key 2' : (slotName === 'Slot 3' ? 'API Key 3' : 'Master Key')) : slotName
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // Check if slot name is just "Slot 1" -> "Master Key"
+    const nameToCreate = slotName === 'Slot 1' ? 'Master Key' : finalName
 
-    // Generate new random key
-    const newKey = `pk_live_${Math.random().toString(36).substring(2, 15)}...${Math.random().toString(36).substring(2, 8)}`
-
-    setDashboardApiKeys((prev) =>
-      prev.map((key) =>
-        key.name === keyName
-          ? { ...key, key: newKey, lastUsed: "Just now" }
-          : key
-      )
-    )
-
-    setRegeneratingKey(null)
-  }
-
-  const handleGenerateKey = async (keyName: string) => {
     if (generatingKey) return
-    setGeneratingKey(keyName)
+    setGeneratingKey(slotName)
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      const token = localStorage.getItem('authToken')
+      const response = await fetch('/api/dashboard/api-keys', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: nameToCreate })
+      })
 
-    // Generate new key
-    const newKey = `pk_live_${Math.random().toString(36).substring(2, 15)}...${Math.random().toString(36).substring(2, 8)}`
+      if (response.ok) {
+        // Refresh keys
+        await fetchDashboardData()
+      } else {
+        console.error('Failed to create key')
+      }
 
-    setDashboardApiKeys((prev) =>
-      prev.map((key) =>
-        key.name === keyName
-          ? { ...key, name: keyName === "Slot 2" ? "API Key 2" : "API Key 3", key: newKey, status: "active", lastUsed: "Just now" }
-          : key
-      )
-    )
-
-    setGeneratingKey(null)
+    } catch (error) {
+      console.error('Error generating key:', error)
+    } finally {
+      setGeneratingKey(null)
+    }
   }
 
-  const handleDeleteKey = (keyName: string) => {
-    setDashboardApiKeys((prev) =>
-      prev.map((key) =>
-        key.name === keyName
-          ? { ...key, name: key.name === "API Key 2" ? "Slot 2" : "Slot 3", key: "", status: "empty", lastUsed: "" }
-          : key
-      )
-    )
+  const handleDeleteKey = async (id: string, keyName: string) => {
+    if (!confirm(`Are you sure you want to delete ${keyName}? This action cannot be undone.`)) return
+
+    try {
+      const token = localStorage.getItem('authToken')
+      const response = await fetch('/api/dashboard/api-keys', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id })
+      })
+
+      if (response.ok) {
+        await fetchDashboardData()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete key')
+      }
+    } catch (error) {
+      console.error('Error deleting key:', error)
+    }
+  }
+
+  const handleRegenerateKey = async (key: any) => {
+    if (regeneratingKey) return
+    setRegeneratingKey(key.name)
+
+    // To regenerate, we delete then create
+    // Note: This is a destructive action for the old key
+    if (!confirm(`Regenerating ${key.name} will revoke the current key immediately. Continue?`)) {
+      setRegeneratingKey(null)
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('authToken')
+
+      // 1. Delete old key
+      const delRes = await fetch('/api/dashboard/api-keys', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ id: key.id })
+      })
+
+      if (!delRes.ok) {
+        throw new Error('Failed to delete old key')
+      }
+
+      // 2. Create new key
+      const createRes = await fetch('/api/dashboard/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: key.name })
+      })
+
+      if (createRes.ok) {
+        await fetchDashboardData()
+      }
+    } catch (error) {
+      console.error('Regenerate error:', error)
+    } finally {
+      setRegeneratingKey(null)
+    }
+  }
+
+  const handleToggleAutoRenew = async () => {
+    const newValue = !autoRenew
+    setAutoRenew(newValue) // Optimistic update
+
+    try {
+      const response = await fetch('/api/dashboard/package', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoRenew: newValue })
+      })
+
+      if (!response.ok) {
+        setAutoRenew(!newValue) // Revert on error
+        const data = await response.json()
+        alert(data.error || 'Failed to update auto-renew')
+      }
+    } catch (error) {
+      console.error('Error updating auto-renew:', error)
+      setAutoRenew(!newValue)
+    }
+  }
+
+  const handleCancelPackage = async () => {
+    if (!confirm('Are you sure you want to cancel your package? This will stop all services associated with this package.')) return
+
+    try {
+      const response = await fetch('/api/dashboard/package', {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        setActivePackage(null)
+        await fetchDashboardData()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to cancel package')
+      }
+    } catch (error) {
+      console.error('Error cancelling package:', error)
+    }
   }
 
   return (
-    <DashboardLayout>
-      <div className="p-8 space-y-6">
-        {/* Top Navigation Header */}
-        <div className="flex items-center justify-between mb-6 p-4 rounded-2xl bg-card border border-border animate-in fade-in duration-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
-              <Sparkles className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Captcha Solving Service</p>
-            </div>
-          </div>
+    <>
 
-          <div className="flex items-center gap-3">
-            {/* Extensions Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
-                <Puzzle className="w-4 h-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">Extensions</span>
-                <ArrowUpRight className="w-3 h-3 text-muted-foreground group-hover:rotate-45 transition-transform" />
-              </button>
 
-              {/* Dropdown Menu */}
-              <div className="absolute top-full left-0 mt-2 w-64 p-2 rounded-xl bg-card border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl">
-                {extensions.map((extension, index: number) => {
-                  const Icon = extension.icon
-                  return (
-                    <Link
-                      key={extension.label}
-                      href={extension.href}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">{extension.label}</p>
-                        <p className="text-xs text-muted-foreground">{extension.description}</p>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
 
-            {/* API Library */}
-            <Link href="/extensions/api" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
-              <Code className="w-4 h-4 text-foreground" />
-              <span className="text-sm font-medium text-foreground">API Library</span>
-            </Link>
+      <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 ">
+        {/* Top Navigation Header - Hidden on mobile, shown on desktop */}
 
-            {/* Wallet Balance */}
-            <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-secondary/50 transition-colors">
-              <Wallet className="w-4 h-4 text-foreground" />
-              <div className="flex items-baseline gap-1">
-                <span className="text-sm font-medium text-foreground">${walletBalance.toFixed(2)}</span>
-                <span className="text-xs text-muted-foreground">USD</span>
-              </div>
-            </div>
-
-            {/* Notifications */}
-            <button className="relative p-2 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors">
-              <Bell className="w-5 h-5 text-foreground" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            </button>
-
-            {/* Profile Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
-              <User className="w-5 h-5 text-white" />
-            </div>
-          </div>
-        </div>
 
         {/* Greeting Header */}
         <div className="animate-in fade-in duration-500">
-          <h1 className="text-3xl font-bold text-foreground mb-1">
-            {getGreeting()}, <span className="text-primary">bdsonghd33</span>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
+            {getGreeting()}, <span className="text-primary">{userData?.name}</span>
           </h1>
-          <p className="text-sm text-muted-foreground">{getCurrentDate()}</p>
+          <p className="text-xs md:text-sm text-muted-foreground">{getCurrentDate()}</p>
         </div>
 
-        {/* Onboarding Rewards Banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20 p-4 animate-in slide-in-from-top duration-500">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-primary/20 rounded-bl-full"></div>
-          <div className="absolute top-2 right-2 px-2 py-1 bg-primary rounded-lg text-xs font-bold text-white rotate-12">
-            NEW
+        {/* Promotional Banner */}
+        <div className="relative overflow-hidden rounded-xl md:rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-primary/10 border border-purple-500/30 p-4 md:p-6 animate-in slide-in-from-top duration-500">
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-transparent rounded-bl-full"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-pink-500/20 to-transparent rounded-tr-full"></div>
+
+          {/* Badge */}
+          <div className="absolute top-3 right-3 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-xs font-bold text-white shadow-lg animate-pulse">
+            LIMITED OFFER
           </div>
 
-          <div className="flex items-start gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-primary/20">
-              <Gift className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">ONBOARDING REWARDS</h3>
-              <p className="text-xs text-muted-foreground">
-                {tasks.filter(t => t.completed).length}/{tasks.length} • Rewards soon
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {tasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => {
-                  if (!task.completed) {
-                    setTasks(tasks.map(t => t.id === task.id ? { ...t, completed: true } : t))
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${task.completed
-                  ? 'bg-green-500/20 border border-green-500/30 text-green-400'
-                  : 'bg-secondary/50 border border-border hover:border-primary/30 text-foreground hover:scale-105'
-                  }`}
-              >
-                {task.completed ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full border-2 border-muted-foreground"></div>
-                )}
-                <span className="text-sm font-medium">{task.label}</span>
-                <span className="text-xs text-primary font-bold">
-                  {task.completed ? '✓' : task.reward}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Low Balance Alert */}
-        {showAlert && (
-          <div className="relative rounded-2xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 p-4 animate-in slide-in-from-top duration-500">
-            <button
-              onClick={() => setShowAlert(false)}
-              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-
-            <div className="flex items-center justify-between pr-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/20">
-                  <AlertCircle className="w-5 h-5 text-yellow-500" />
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                    <Sparkles className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-xl font-bold text-foreground">Upgrade to Premium</h3>
+                    <p className="text-xs text-muted-foreground">Get 50% more credits + Priority Support</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    Low Balance Alert
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 md:gap-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-foreground">50,000 credits/month</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-foreground">24/7 Priority Support</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-foreground">Advanced Analytics</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <Star className="w-4 h-4 text-yellow-500" />
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your balance is <span className="font-bold text-yellow-500">${walletBalance.toFixed(2)}</span>. Top up now to avoid service interruptions.
-                  </p>
+                    <span className="text-sm font-semibold text-yellow-500">Save $7/month</span>
+                  </div>
                 </div>
               </div>
 
-              <button className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold transition-all hover:scale-105 flex items-center gap-2">
-                Add Funds
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
+                <div className="text-left md:text-right">
+                  <p className="text-2xl md:text-3xl font-bold text-foreground">$40.99</p>
+                  <p className="text-xs text-muted-foreground line-through">$47.99/month</p>
+                </div>
+                <Link href="/dashboard/pricing" className="w-full md:w-auto">
+                  <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold transition-all hover:scale-105 shadow-lg flex items-center justify-center gap-2">
+                    Upgrade Now
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+
+
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Daily Usage */}
           <Suspense fallback={<SkeletonGrid />}>
             <div
-              className="p-6 rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-colors"
+              className="p-6 md:p-8 rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-all group relative overflow-hidden"
               style={{ animationDelay: '100ms' }}
             >
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-foreground mb-1">Daily Usage</h2>
-              </div>
+              <div className="relative z-10 grid grid-cols-1 md:grid-cols-5 items-center gap-8">
+                {/* Stats Left - Col 3 */}
+                <div className="md:col-span-3 space-y-6">
+                  <div>
+                    <h2 className="text-lg font-bold text-foreground mb-1">
+                      {dailyUsage?.type === 'count' ? 'Package Usage' : 'Daily Usage'}
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      {dailyUsage?.type === 'count'
+                        ? 'Your current package consumption and remaining balance'
+                        : 'Your daily request quota and current status'}
+                    </p>
+                  </div>
 
-              <div className="space-y-6">
-                {/* Circular Progress */}
-                <div className="flex items-center justify-center">
-                  <div className="relative w-40 h-40">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                        {dailyUsage?.type === 'count' ? 'Total Used' : 'Total Requests'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-primary" />
+                        <span className="text-2xl font-bold text-foreground">{dailyUsage?.totalRequests}</span>
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-secondary/30 border border-border/50">
+                      <p className="text-xs text-primary uppercase tracking-wider mb-1 font-semibold">
+                        {dailyUsage?.type === 'count' ? 'Remaining' : 'Requests Left'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-primary" />
+                        <span className="text-2xl font-bold text-primary">{dailyUsage?.requestsLeft}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {dailyUsage?.resetsIn && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/20 p-2 rounded-lg w-fit">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Quota resets in: <span className="text-foreground font-medium">{dailyUsage?.resetsIn}</span></span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Circular Progress Right - Col 2 */}
+                <div className="md:col-span-2 flex items-center justify-center">
+                  <div className="relative w-44 h-44">
                     <svg className="w-full h-full transform -rotate-90">
                       <circle
-                        cx="80"
-                        cy="80"
-                        r="70"
+                        cx="88"
+                        cy="88"
+                        r="76"
                         stroke="currentColor"
-                        strokeWidth="8"
+                        strokeWidth="10"
                         fill="none"
-                        className="text-secondary"
+                        className="text-secondary/50"
                       />
                       <circle
-                        cx="80"
-                        cy="80"
-                        r="70"
-                        stroke="url(#gradient)"
-                        strokeWidth="8"
+                        cx="88"
+                        cy="88"
+                        r="76"
+                        stroke="url(#usage-gradient)"
+                        strokeWidth="11"
                         fill="none"
-                        strokeDasharray={`${2 * Math.PI * 70}`}
-                        strokeDashoffset={`${2 * Math.PI * 70 * (1 - dailyUsage.percentage / 100)}`}
-                        className="transition-all duration-1000"
+                        strokeDasharray={`${2 * Math.PI * 76}`}
+                        strokeDashoffset={`${2 * Math.PI * 76 * (1 - dailyUsage?.percentage / 100)}`}
+                        className="transition-all duration-1000 ease-out"
                         strokeLinecap="round"
                       />
                       <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="usage-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="hsl(var(--primary))" />
                           <stop offset="100%" stopColor="hsl(var(--accent))" />
                         </linearGradient>
                       </defs>
                     </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Activity className="w-12 h-12 text-primary animate-pulse" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-3xl font-black text-foreground">{Math.round(dailyUsage?.percentage)}%</span>
+                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Usage</span>
+                    </div>
+                    {/* Pulsing Dot on progress head */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div
+                        className="w-3 h-3 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)] animate-pulse"
+                        style={{
+                          left: '50%',
+                          top: '50%',
+                          transform: `rotate(${dailyUsage?.percentage * 3.6 - 90}deg) translate(76px) rotate(-${dailyUsage?.percentage * 3.6 - 90}deg) translate(-50%, -50%)`
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
-
-                {/* Stats */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground uppercase tracking-wide">Total Requests</span>
-                    <span className="text-lg font-bold text-foreground">{dailyUsage.totalRequests}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-primary uppercase tracking-wide">Requests Left</span>
-                    <span className="text-lg font-bold text-primary">{dailyUsage.requestsLeft}</span>
-                  </div>
-                </div>
               </div>
+
+              {/* Decorative background element */}
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/10 transition-colors" />
             </div>
           </Suspense>
 
@@ -389,7 +463,7 @@ export default function DashboardPage() {
           <Suspense fallback={<SkeletonGrid />}>
             {activePackage ? (
               <div
-                className="p-5 rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-colors"
+                className="p-4 md:p-5 rounded-xl md:rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-colors"
                 style={{ animationDelay: '200ms' }}
               >
                 <div className="space-y-3">
@@ -403,7 +477,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setAutoRenew(prev => !prev)}
+                        onClick={handleToggleAutoRenew}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                         title={autoRenew ? 'Auto Renew: On' : 'Auto Renew: Off'}
                       >
@@ -415,7 +489,7 @@ export default function DashboardPage() {
                         )}
                       </button>
                       <button
-                        onClick={() => setActivePackage(null)}
+                        onClick={handleCancelPackage}
                         className="p-2 rounded-lg hover:bg-red-500/10 transition-colors group"
                         title="Delete Package"
                       >
@@ -427,23 +501,23 @@ export default function DashboardPage() {
                   {/* Package Code and Price */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-2xl font-bold text-foreground">D02C</p>
+                      <p className="text-2xl font-bold text-foreground">{activePackage.code}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{activePackage.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-foreground">{activePackage.price.split('/')[0]}</p>
+                      <p className="text-2xl font-bold text-foreground">${activePackage.price.toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">per month</p>
                     </div>
                   </div>
 
                   {/* Usage Stats Cards */}
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 md:gap-2">
                     <div className="p-2.5 rounded-lg bg-secondary/30 border border-border">
                       <div className="flex items-center gap-1.5 mb-1">
                         <Zap className="w-3.5 h-3.5 text-primary" />
                         <span className="text-xs text-muted-foreground">Credits</span>
                       </div>
-                      <p className="text-sm font-bold text-foreground">6,500</p>
+                      <p className="text-sm font-bold text-foreground">{activePackage.creditsRemaining}</p>
                       <p className="text-xs text-muted-foreground">remaining</p>
                     </div>
                     <div className="p-2.5 rounded-lg bg-secondary/30 border border-border">
@@ -451,7 +525,7 @@ export default function DashboardPage() {
                         <TrendingUp className="w-3.5 h-3.5 text-green-500" />
                         <span className="text-xs text-muted-foreground">Used</span>
                       </div>
-                      <p className="text-sm font-bold text-foreground">3,500</p>
+                      <p className="text-sm font-bold text-foreground">{activePackage.creditsUsed}</p>
                       <p className="text-xs text-muted-foreground">this month</p>
                     </div>
                     <div className="p-2.5 rounded-lg bg-secondary/30 border border-border">
@@ -466,7 +540,7 @@ export default function DashboardPage() {
 
                   {/* Package Features */}
                   <div className="grid grid-cols-2 gap-2">
-                    {activePackage.features.slice(0, 4).map((feature, index) => (
+                    {activePackage.features.slice(0, 4).map((feature: string, index: number) => (
                       <div key={index} className="flex items-center gap-1.5 text-xs">
                         <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                         <span className="text-muted-foreground truncate">{feature}</span>
@@ -474,35 +548,35 @@ export default function DashboardPage() {
                     ))}
                   </div>
 
-              
-              
 
-                  {/* Active Plan Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Usage This Month</span>
-                      <span className="text-xs font-medium text-foreground">35% used</span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-primary to-accent rounded-full" style={{ width: '35%' }}></div>
-                    </div>
-                  </div>
 
                   {/* Action Buttons */}
                   <div className="flex items-center gap-3 pt-1">
-                    <button className="flex-1 px-4 py-2.5 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground font-semibold transition-all hover:scale-[1.02]">
-                      RENEW
+                    <button
+                      disabled={countdown !== "00:00:00"}
+                      className={`
+                        flex-1 px-4 py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 border
+                        ${countdown === "00:00:00"
+                          ? "bg-primary hover:bg-primary/90 text-white border-primary shadow-lg hover:scale-[1.02]"
+                          : "bg-secondary/40 text-muted-foreground border-border/50 cursor-not-allowed"}
+                      `}
+                    >
+                      <Clock className={`w-3.5 h-3.5 ${countdown === "00:00:00" ? "text-white" : "text-primary animate-pulse"}`} />
+                      <span className="font-mono text-[12px] tracking-tight">
+                        {countdown === "00:00:00" ? "RENEW NOW" : countdown}
+                      </span>
                     </button>
-                    <button className="flex-1 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-[1.02]">
-                      UPGRADE
-                    </button>
+                    <Link href={`/dashboard/pricing?current=${activePackage?.code}`} className="flex-1">
+                      <button className="w-full px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-[1.02]">
+                        UPGRADE
+                      </button>
+                    </Link>
                   </div>
                 </div>
               </div>
             ) : (
               <div
-                className="p-6 rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-colors flex items-center justify-center"
+                className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-card border border-border animate-in fade-in duration-500 hover:border-primary/30 transition-colors flex items-center justify-center"
                 style={{ animationDelay: '200ms' }}
               >
                 <div className="text-center py-8">
@@ -515,12 +589,13 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
                     You don't have an active subscription package yet.
                   </p>
-                  <button
-                    onClick={() => setActivePackage(packageInfo)}
-                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-105"
-                  >
-                    Get Package
-                  </button>
+                  <Link href="/dashboard/pricing">
+                    <button
+                      className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-105"
+                    >
+                      Get Package
+                    </button>
+                  </Link>
                 </div>
               </div>
             )}
@@ -529,7 +604,7 @@ export default function DashboardPage() {
           {/* API Keys with Suspense */}
           <Suspense fallback={<SkeletonGrid />}>
             <div
-              className="p-6 rounded-2xl bg-card border border-border animate-in fade-in duration-500"
+              className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-card border border-border animate-in fade-in duration-500 md:col-span-2 lg:col-span-1"
               style={{ animationDelay: '400ms' }}
             >
               <div className="flex items-center justify-between mb-6">
@@ -591,16 +666,16 @@ export default function DashboardPage() {
                               {key.status}
                             </span>
                             <button
-                              onClick={() => handleRegenerateKey(key.name)}
+                              onClick={() => handleRegenerateKey(key)}
                               disabled={regeneratingKey === key.name}
                               className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors group disabled:opacity-50"
                               title="Regenerate API key"
                             >
                               <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground group-hover:text-primary ${regeneratingKey === key.name ? 'animate-spin' : ''}`} />
                             </button>
-                            {key.name !== "Master Key" && (
+                            {!key.isMaster && key.name !== "Master Key" && (
                               <button
-                                onClick={() => handleDeleteKey(key.name)}
+                                onClick={() => handleDeleteKey(key.id, key.name)}
                                 className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors group"
                                 title="Delete API key"
                               >
@@ -657,6 +732,6 @@ export default function DashboardPage() {
           }
         }
       `}</style>
-    </DashboardLayout>
+    </>
   )
 }

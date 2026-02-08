@@ -12,8 +12,7 @@ export default function PricingPage() {
         <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
-      <Navbar />
-
+  
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <PricingSection />
       </main>

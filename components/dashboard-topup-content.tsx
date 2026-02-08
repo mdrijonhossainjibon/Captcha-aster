@@ -265,6 +265,119 @@ export function DashboardTopupContent() {
         </div>
       </div>
 
+      {/* Step Indicator - Only show on select screen */}
+      {step === "select" && (
+        <div
+          className={`transition-all duration-500 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}
+        >
+          <div className="p-6 rounded-2xl bg-card border border-border">
+            <div className="flex items-center justify-between relative">
+              {/* Progress Line */}
+              <div className="absolute top-6 left-0 right-0 h-0.5 bg-border -z-10" />
+              <div
+                className="absolute top-6 left-0 h-0.5 bg-primary transition-all duration-500 -z-10"
+                style={{
+                  width: selectedCrypto && selectedNetwork
+                    ? '100%'
+                    : selectedCrypto
+                      ? '66%'
+                      : currentAmount >= 10
+                        ? '33%'
+                        : '0%'
+                }}
+              />
+
+              {/* Step 1: Amount */}
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${currentAmount >= 10
+                    ? 'bg-primary border-primary shadow-lg shadow-primary/30'
+                    : 'bg-card border-border'
+                  }`}>
+                  {currentAmount >= 10 ? (
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  ) : (
+                    <span className="text-sm font-bold text-muted-foreground">1</span>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className={`text-xs font-semibold ${currentAmount >= 10 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    Amount
+                  </p>
+                  {currentAmount >= 10 && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">${currentAmount.toFixed(0)}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2: Cryptocurrency */}
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${selectedCrypto
+                    ? 'bg-primary border-primary shadow-lg shadow-primary/30'
+                    : currentAmount >= 10
+                      ? 'bg-card border-primary animate-pulse'
+                      : 'bg-card border-border'
+                  }`}>
+                  {selectedCrypto ? (
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  ) : (
+                    <span className={`text-sm font-bold ${currentAmount >= 10 ? 'text-primary' : 'text-muted-foreground'}`}>2</span>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className={`text-xs font-semibold ${selectedCrypto ? 'text-primary' : currentAmount >= 10 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    Crypto
+                  </p>
+                  {selectedCrypto && selectedCryptoData && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{selectedCryptoData.symbol}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3: Network */}
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${selectedNetwork
+                    ? 'bg-primary border-primary shadow-lg shadow-primary/30'
+                    : selectedCrypto
+                      ? 'bg-card border-primary animate-pulse'
+                      : 'bg-card border-border'
+                  }`}>
+                  {selectedNetwork ? (
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  ) : (
+                    <span className={`text-sm font-bold ${selectedCrypto ? 'text-primary' : 'text-muted-foreground'}`}>3</span>
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className={`text-xs font-semibold ${selectedNetwork ? 'text-primary' : selectedCrypto ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    Network
+                  </p>
+                  {selectedNetwork && selectedNetworkData && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[80px] truncate">
+                      {selectedNetworkData.name.split(' ')[0]}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 4: Confirm */}
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${selectedCrypto && selectedNetwork && currentAmount >= 10
+                    ? 'bg-card border-primary animate-pulse'
+                    : 'bg-card border-border'
+                  }`}>
+                  <span className={`text-sm font-bold ${selectedCrypto && selectedNetwork && currentAmount >= 10 ? 'text-primary' : 'text-muted-foreground'}`}>4</span>
+                </div>
+                <div className="text-center">
+                  <p className={`text-xs font-semibold ${selectedCrypto && selectedNetwork && currentAmount >= 10 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    Confirm
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {step === "select" ? (
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Side - Amount Selection */}
@@ -340,8 +453,8 @@ export function DashboardTopupContent() {
                     key={crypto.id}
                     onClick={() => handleCryptoSelect(crypto.id)}
                     className={`p-4 rounded-xl border transition-all duration-300 text-center relative overflow-hidden group ${selectedCrypto === crypto.id
-                        ? `${crypto.borderColor} bg-gradient-to-br ${crypto.bg} shadow-lg shadow-primary/10`
-                        : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                      ? `${crypto.borderColor} bg-gradient-to-br ${crypto.bg} shadow-lg shadow-primary/10`
+                      : "border-border bg-card hover:border-primary/30 hover:shadow-md"
                       }`}
                   >
                     {/* Shimmer effect */}
@@ -384,8 +497,8 @@ export function DashboardTopupContent() {
                         key={network.id}
                         onClick={() => setSelectedNetwork(network.id)}
                         className={`w-full p-4 rounded-xl border transition-all duration-300 text-left relative overflow-hidden group ${isSelected
-                            ? `${selectedCryptoData.borderColor} bg-gradient-to-r ${selectedCryptoData.bg} shadow-lg`
-                            : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                          ? `${selectedCryptoData.borderColor} bg-gradient-to-r ${selectedCryptoData.bg} shadow-lg`
+                          : "border-border bg-card hover:border-primary/30 hover:shadow-md"
                           }`}
                       >
                         {/* Shimmer effect */}
