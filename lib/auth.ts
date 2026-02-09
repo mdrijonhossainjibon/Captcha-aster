@@ -90,7 +90,6 @@ export const authOptions: NextAuthOptions = {
                 let existingUser = await User.findOne({ email: user.email }).lean()
 
 
-
                 if (!existingUser) {
                     // Create new user for OAuth login
                     const newUser = await User.create({
