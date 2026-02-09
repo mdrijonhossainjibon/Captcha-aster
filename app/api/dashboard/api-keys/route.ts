@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import ApiKey from '@/lib/models/ApiKey'
 import { requireAuth } from '@/lib/auth'
+import { logActivity } from '@/lib/activity'
+import { headers } from 'next/headers'
 
 // Get all API keys for a user
 export async function GET() {
@@ -100,6 +102,18 @@ export async function POST(request: NextRequest) {
             status: 'active',
         })
 
+        // Log activity
+        const heads = await headers()
+        const currentIp = heads.get('x-forwarded-for')?.split(',')[0] || heads.get('x-real-ip') || '127.0.0.1'
+
+        await logActivity({
+            userId,
+            action: 'API Key Generated',
+            type: 'api',
+            description: `Created new API key: ${name}`,
+            ip: currentIp,
+        })
+
         return NextResponse.json({
             success: true,
             message: 'API key created successfully',
@@ -153,6 +167,18 @@ export async function DELETE(request: NextRequest) {
 
         // Permanently delete or revoke? Let's delete for now to free up the slot.
         await ApiKey.deleteOne({ _id: id })
+
+        // Log activity
+        const heads = await headers()
+        const currentIp = heads.get('x-forwarded-for')?.split(',')[0] || heads.get('x-real-ip') || '127.0.0.1'
+
+        await logActivity({
+            userId,
+            action: 'API Key Deleted',
+            type: 'api',
+            description: `Deleted API key: ${keyToDelete.name}`,
+            ip: currentIp,
+        })
 
         return NextResponse.json({
             success: true,

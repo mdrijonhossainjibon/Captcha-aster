@@ -8,6 +8,7 @@ import Package from './models/Package'
 import ApiKey from './models/ApiKey'
 import bcrypt from 'bcryptjs'
 import { headers } from 'next/headers'
+import { logActivity } from './activity'
 
 export interface AuthUser {
     userId: string
@@ -139,6 +140,15 @@ export const authOptions: NextAuthOptions = {
                         name: existingUser.name || 'User',
                         isOAuth: true,
                     }).catch(err => console.error('Failed to send welcome email:', err))
+
+                    // Log activity
+                    await logActivity({
+                        userId: existingUser._id,
+                        action: 'Account Created',
+                        type: 'security',
+                        description: `Account created via ${account.provider}`,
+                        ip: currentIp,
+                    })
                 } else {
                     // Only send login notification if IP is different
                     if (existingUser.lastLoginIp !== currentIp) {
@@ -154,6 +164,15 @@ export const authOptions: NextAuthOptions = {
                         // Update last login IP
                         await User.findByIdAndUpdate(existingUser._id, { lastLoginIp: currentIp })
                     }
+
+                    // Log login activity
+                    await logActivity({
+                        userId: existingUser._id,
+                        action: 'Login',
+                        type: 'login',
+                        description: `Logged in via ${account.provider}`,
+                        ip: currentIp,
+                    })
                 }
 
                 // Update user object with database info
