@@ -2,17 +2,29 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, MoreVertical, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift } from "lucide-react"
+import { Clock, RefreshCw, AlertTriangle, Bell, User, MoreVertical, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift, LogOut, Shield, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { signOut, useSession } from "next-auth/react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface HeaderProps {
   onMenuToggle?: () => void
 }
 
 export function Header({ onMenuToggle }: HeaderProps = {}) {
+  const { data: session } : any = useSession()
   const [balance, setBalance] = useState<number>(0.00)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+
+  const isAdmin = session?.user?.role === "admin"
 
   const extensions = [
     { label: "Chrome Extension", href: "/extensions/chrome", icon: Download, description: "Browser extension for Chrome" },
@@ -145,13 +157,55 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full ring-2 ring-card" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-xl"
-              >
-                <Settings className="w-5 h-5" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-xl transition-all duration-300"
+                  >
+                    <div className="relative">
+                      <User className="w-5 h-5" />
+                      <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-card" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl border-border bg-card/95 backdrop-blur-md shadow-xl">
+                  <DropdownMenuLabel className="p-2">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium text-foreground leading-none">{session?.user?.name || "User"}</p>
+                      <p className="text-xs text-muted-foreground leading-none truncate">{session?.user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-border/50" />
+
+                  <Link href="/dashboard">
+                    <DropdownMenuItem className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors">
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Dashboard</span>
+                    </DropdownMenuItem>
+                  </Link>
+
+                  {isAdmin && (
+                    <Link href="/admin">
+                      <DropdownMenuItem className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-destructive-foreground/90">
+                        <Shield className="w-4 h-4 text-destructive" />
+                        <span className="text-destructive">Admin Panel</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
+
+                  <DropdownMenuSeparator className="bg-border/50" />
+
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                    className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors group"
+                  >
+                    <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Mobile Menu Toggle - Added to Right */}
               {onMenuToggle && (
