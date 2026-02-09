@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Menu, X, ChevronDown, Chrome } from "lucide-react"
+import { Menu, X, ChevronDown, Chrome, Zap, HelpCircle, Info, FileCode, Puzzle } from "lucide-react"
 
 const navLinks = [
-  { href: "/features", label: "Features" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/about", label: "About" },
-  { href: "/api-docs", label: "API Docs" },
+  { href: "/features", label: "Features", icon: Zap },
+  { href: "/how-it-works", label: "How It Works", icon: HelpCircle },
+  { href: "/about", label: "About", icon: Info },
+  { href: "/api-docs", label: "API Docs", icon: FileCode },
 ]
 
 const extensionLinks = [
@@ -53,8 +54,14 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 overflow-hidden">
+              <Image
+                src="/logo.png"
+                alt="CaptchaMaster Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-xl font-bold text-foreground">
               Captcha<span className="text-primary">Ɱaster</span>
@@ -63,15 +70,19 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const Icon = link.icon
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+                >
+                  <Icon className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors" />
+                  {link.label}
+                </Link>
+              )
+            })}
 
             {/* Extension Dropdown */}
             <div
@@ -79,11 +90,12 @@ export function Navbar() {
               ref={dropdownRef}
             >
               <button
-                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors outline-none"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors outline-none group"
                 onClick={() => setExtensionDropdownOpen(!extensionDropdownOpen)}
               >
+                <Puzzle className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors" />
                 Extension
-                <ChevronDown className={`w-4 h-4 transition-transform ${extensionDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${extensionDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {extensionDropdownOpen && (
@@ -123,25 +135,32 @@ export function Navbar() {
         {isOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const Icon = link.icon
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-2 font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Icon className="w-5 h-5 text-primary" />
+                    {link.label}
+                  </Link>
+                )
+              })}
 
               {/* Mobile Extension Dropdown */}
               <div>
                 <button
-                  className="flex items-center justify-between w-full text-muted-foreground hover:text-foreground transition-colors py-2"
+                  className="flex items-center justify-between w-full text-muted-foreground hover:text-foreground transition-colors py-3"
                   onClick={() => setExtensionDropdownOpen(!extensionDropdownOpen)}
                 >
-                  Extension
-                  <ChevronDown className={`w-4 h-4 transition-transform ${extensionDropdownOpen ? 'rotate-180' : ''}`} />
+                  <div className="flex items-center gap-3 font-medium">
+                    <Puzzle className="w-5 h-5 text-primary" />
+                    Extension
+                  </div>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${extensionDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {extensionDropdownOpen && (

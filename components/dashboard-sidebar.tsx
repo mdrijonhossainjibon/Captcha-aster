@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -160,11 +161,17 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <Link href="/landing" className="flex items-center gap-3">
-          {/* Animated Logo */}
+        <Link href="/" className="flex items-center gap-3 group">
+          {/* Brand Logo */}
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center animate-pulse-glow">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 overflow-hidden transition-all duration-300 group-hover:scale-105">
+              <Image
+                src="/logo.png"
+                alt="CaptchaMaster Logo"
+                width={40}
+                height={40}
+                className="w-full h-full object-contain"
+              />
             </div>
             {/* Orbiting dot */}
             <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 border-2 border-card animate-pulse" />

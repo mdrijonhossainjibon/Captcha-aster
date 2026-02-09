@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Play, ArrowRight, Shield, Zap, Clock } from "lucide-react"
+import Image from "next/image"
+import { Play, ArrowRight, Shield, Zap, Clock } from "lucide-react"
 import Link from "next/link"
 
 export function HeroSection() {
@@ -33,7 +34,13 @@ export function HeroSection() {
           >
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-primary/10 border border-primary/20">
-              <Sparkles className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-primary" />
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                width={16}
+                height={16}
+                className="w-3.5 sm:w-4 h-3.5 sm:h-4 object-contain"
+              />
               <span className="text-xs sm:text-sm font-medium text-foreground">AI-Powered Captcha Solver</span>
             </div>
 
@@ -104,8 +111,14 @@ export function HeroSection() {
               <div className="relative space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center animate-pulse-glow">
-                      <Sparkles className="w-5 sm:w-6 h-5 sm:h-6 text-primary-foreground" />
+                    <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center animate-pulse-glow shadow-sm overflow-hidden">
+                      <Image
+                        src="/logo.png"
+                        alt="Logo"
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-contain p-1"
+                      />
                     </div>
                     <div>
                       <p className="text-sm sm:text-base font-semibold text-foreground">CaptchaⱮaster</p>

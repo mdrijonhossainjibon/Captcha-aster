@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { AnimatedLogo } from "./animated-logo"
-import { StatusBox } from "./status-box"
+import Image from "next/image"
 import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, Menu, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -60,9 +59,20 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
               </Button>
 
             )}
-            <div className="lg:hidden">
-              <AnimatedLogo />
-            </div>
+            <Link href="/" className="lg:hidden flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 overflow-hidden transition-all duration-300 group-hover:scale-105">
+                <Image
+                  src="/logo.png"
+                  alt="CaptchaMaster Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span className="text-xl font-bold text-foreground">
+                Captcha<span className="text-primary">Ɱaster</span>
+              </span>
+            </Link>
           </div>
 
           {/* Right Section Content */}

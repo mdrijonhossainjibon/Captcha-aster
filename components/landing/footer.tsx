@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Sparkles, Twitter, Github, MessageSquare, ArrowUpRight } from "lucide-react"
+import Image from "next/image"
+import { Twitter, Github, MessageSquare, ArrowUpRight } from "lucide-react"
 
 const footerLinks = {
   Product: [
@@ -24,8 +25,14 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1 space-y-6">
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl  flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
+                <Image
+                  src="/logo.png"
+                  alt="CaptchaMaster Logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-xl font-bold text-foreground">
                 Captcha<span className="text-primary">Ɱaster</span>
