@@ -68,19 +68,23 @@ const systemItems = [
 
 
 export function AdminSidebar() {
-  const { data: session } : any = useSession();
+  const { data: session, status }: any = useSession();
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
 
-  if (session?.user?.role !== 'admin') {
- 
-     redirect('/dashboard')
-  }
-
-   
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  if (status === 'loading') {
+    return <div className="fixed left-0 top-0 w-64 h-screen bg-card border-r border-border flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  }
+
+  if (session?.user?.role !== 'admin') {
+    redirect('/dashboard')
+  }
 
   const NavItem = ({ item, index }: { item: (typeof mainNavItems)[0]; index: number }) => {
     const isActive = pathname === item.href
