@@ -1,43 +1,110 @@
-import { Suspense } from "react"
+"use client"
+
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Package, DollarSign, CreditCard, TrendingUp, TrendingDown, Cpu, HardDrive, MemoryStick, Clock, Thermometer } from "lucide-react"
+import { Users, Package, DollarSign, CreditCard, TrendingUp, TrendingDown, Cpu, HardDrive, MemoryStick, Clock, Thermometer, Loader2 } from "lucide-react"
 import { SkeletonStats } from "@/components/skeletons";
+import { fetchAdminStatsRequest } from "@/modules/admin/actions"
+import { RootState } from "@/modules/rootReducer"
 
-import { headers } from "next/headers"
+export default function AdminDashboard() {
+  const dispatch = useDispatch()
+  const { stats: data, loading, error } = useSelector((state: RootState) => state.admin)
 
+  useEffect(() => {
+    dispatch(fetchAdminStatsRequest())
+    // Refresh every 30 seconds
+    const interval = setInterval(() => {
+      dispatch(fetchAdminStatsRequest())
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [dispatch])
 
-async function fetchDashboardStats() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const headerList = await headers()
-
-    const res = await fetch(`${baseUrl}/api/admin/dashboard-stats`, {
-      cache: 'no-store',
-      headers: {
-        'Cookie': headerList.get('cookie') || ''
-      }
-    })
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch dashboard stats')
-    }
-
-    return await res.json()
-  } catch (error) {
-    console.error('Error fetching dashboard stats:', error)
-    return null
+  if (loading && !data) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-1000">
+        <HeaderSection />
+        <SkeletonStats />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 h-[500px] w-full bg-card/20 rounded-xl animate-pulse" />
+          <div className="lg:col-span-4 h-[500px] w-full bg-card/20 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    )
   }
-}
 
-async function AdminStats() {
-  const data = await fetchDashboardStats();
+  if (error && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <p className="text-destructive font-medium">{error}</p>
+        <button
+          onClick={() => dispatch(fetchAdminStatsRequest())}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
 
   if (!data || !data.success) {
-    return <div className="text-center text-muted-foreground py-8">Failed to load statistics</div>
+    return <div className="text-center text-muted-foreground py-8">No data available</div>
   }
 
-  const { stats } = data
+  return (
+    <div className="space-y-8 animate-in fade-in duration-1000">
+      <HeaderSection />
 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Top Layer: Primary Stats - Spanning all 12 columns */}
+        <div className="lg:col-span-12">
+          <AdminStats stats={data.stats} />
+        </div>
+
+        {/* Main Layer: Bento Grid Content */}
+        <div className="lg:col-span-8 space-y-6">
+          <AdminFinancialStream recentDeposits={data.recentDeposits} />
+        </div>
+
+        <div className="lg:col-span-4 space-y-6">
+          <AdminSystemMetrics systemMetrics={data.systemMetrics} />
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @keyframes progress {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function HeaderSection() {
+  return (
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Command Center</h1>
+        <p className="text-muted-foreground mt-1">Real-time system oversight and financial operations.</p>
+      </div>
+      <div className="flex items-center gap-2 bg-secondary/30 p-1.5 rounded-lg border border-border/40 backdrop-blur-sm">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/40 shadow-sm">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-xs font-bold uppercase tracking-wider text-green-600">Live Feedback</span>
+        </div>
+        <div className="px-3 py-1.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AdminStats({ stats }: { stats: any }) {
   const statCards = [
     {
       title: "Total Users",
@@ -78,7 +145,7 @@ async function AdminStats() {
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-in fade-in duration-500">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       {statCards.map((stat, index) => {
         const Icon = stat.icon
         const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown
@@ -87,10 +154,8 @@ async function AdminStats() {
         return (
           <Card
             key={index}
-            className="border-border hover:border-primary/50 transition-all duration-300 animate-in fade-in duration-500"
-            style={{
-              animationDelay: `${index * 100}ms`,
-            }}
+            className="border-border hover:border-primary/50 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2"
+            style={{ animationDelay: `${index * 100}ms` }}
           >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
@@ -115,67 +180,7 @@ async function AdminStats() {
   )
 }
 
-export default async function AdminDashboard() {
- 
-  
-  return (
-    <div className="space-y-8 animate-in fade-in duration-1000">
-      {/* Dashboard Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/40 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Command Center</h1>
-          <p className="text-muted-foreground mt-1">Real-time system oversight and financial operations.</p>
-        </div>
-        <div className="flex items-center gap-2 bg-secondary/30 p-1.5 rounded-lg border border-border/40 backdrop-blur-sm">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/50 border border-border/40 shadow-sm">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-green-600">Live Feedback</span>
-          </div>
-          <div className="px-3 py-1.5">
-            <span className="text-xs font-medium text-muted-foreground">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Top Layer: Primary Stats - Spanning all 12 columns */}
-        <div className="lg:col-span-12">
-          <Suspense fallback={<SkeletonStats />}>
-            <AdminStats />
-          </Suspense>
-        </div>
-
-        {/* Main Layer: Bento Grid Content */}
-        {/* Left Side: high volume info (8 columns) */}
-        <div className="lg:col-span-8 space-y-6">
-          <Suspense fallback={<div className="h-[500px] w-full bg-card/20 rounded-xl animate-pulse" />}>
-            <AdminFinancialStream />
-          </Suspense>
-        </div>
-
-        {/* Right Side: Monitoring & System (4 columns) */}
-        <div className="lg:col-span-4 space-y-6">
-          <Suspense fallback={<div className="h-[500px] w-full bg-card/20 rounded-xl animate-pulse" />}>
-            <AdminSystemMetrics />
-          </Suspense>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes slideInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-async function AdminFinancialStream() {
-  const data = await fetchDashboardStats()
-  if (!data || !data.success) return null
-  const { recentDeposits } = data
-
+function AdminFinancialStream({ recentDeposits }: { recentDeposits: any[] }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-500/10 text-green-600 border-green-500/20'
@@ -203,7 +208,7 @@ async function AdminFinancialStream() {
             <p className="font-medium">No active settlement traces found</p>
           </div>
         ) : (
-          <div className="divide-y divide-border/40">
+          <div className="divide-y divide-border/40 max-h-[600px] overflow-y-auto custom-scrollbar">
             {recentDeposits.map((deposit: any, i: number) => (
               <div
                 key={deposit.id}
@@ -215,11 +220,11 @@ async function AdminFinancialStream() {
                     {deposit.user.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <div>
-                    <p className="font-bold text-sm group-hover:text-primary transition-colors">{deposit.user}</p>
+                    <p className="font-bold text-sm group-hover:text-primary transition-colors truncate max-w-[150px]">{deposit.user}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-muted-foreground">{deposit.email}</span>
+                      <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">{deposit.email}</span>
                       <span className="w-1 h-1 rounded-full bg-border" />
-                      <span className="text-[11px] text-muted-foreground/70">{new Date(deposit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                      <span className="text-[11px] text-muted-foreground/70">{new Date(deposit.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
                 </div>
@@ -228,7 +233,7 @@ async function AdminFinancialStream() {
                     <p className="font-black text-base text-foreground tracking-tight">${deposit.amount.toFixed(2)}</p>
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">USD Settlement</p>
                   </div>
-                  <span className={`min-w-[80px] text-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${getStatusColor(deposit.status)}`}>
+                  <span className={`hidden sm:inline-block min-w-[80px] text-center px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${getStatusColor(deposit.status)}`}>
                     {deposit.status}
                   </span>
                 </div>
@@ -241,11 +246,7 @@ async function AdminFinancialStream() {
   )
 }
 
-async function AdminSystemMetrics() {
-  const data = await fetchDashboardStats()
-  if (!data || !data.success) return null
-  const { systemMetrics } = data
-
+function AdminSystemMetrics({ systemMetrics }: { systemMetrics: any }) {
   const getSystemStatusColor = (status: string) => {
     switch (status) {
       case 'healthy': return { bg: 'bg-green-500/10', text: 'text-green-600', bar: 'bg-green-500', glow: 'shadow-[0_0_10px_rgba(34,197,94,0.3)]' }
@@ -259,8 +260,8 @@ async function AdminSystemMetrics() {
     <div className="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-right-4 duration-700">
       {/* Processor Module */}
       <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/40 transition-all duration-300">
-        <div className="h-1 w-full bg-blue-500/10 overflow-hidden">
-          <div className="h-full bg-blue-500 w-1/3 animate-[progress_3s_infinite_linear]" />
+        <div className="h-1 w-full bg-blue-500/10 overflow-hidden relative">
+          <div className="h-full bg-blue-500 w-1/3 absolute animate-[progress_3s_infinite_linear]" />
         </div>
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-6">
@@ -304,8 +305,8 @@ async function AdminSystemMetrics() {
 
       {/* Memory Module */}
       <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/40 transition-all duration-300">
-        <div className="h-1 w-full bg-purple-500/10 overflow-hidden">
-          <div className="h-full bg-purple-500 w-1/4 animate-[progress_5s_infinite_linear]" />
+        <div className="h-1 w-full bg-purple-500/10 overflow-hidden relative">
+          <div className="h-full bg-purple-500 w-1/4 absolute animate-[progress_5s_infinite_linear]" />
         </div>
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-6">
@@ -346,8 +347,8 @@ async function AdminSystemMetrics() {
 
       {/* Persistence Module */}
       <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/40 transition-all duration-300">
-        <div className="h-1 w-full bg-emerald-500/10 overflow-hidden">
-          <div className="h-full bg-emerald-500 w-1/2 animate-[progress_8s_infinite_linear]" />
+        <div className="h-1 w-full bg-emerald-500/10 overflow-hidden relative">
+          <div className="h-full bg-emerald-500 w-1/2 absolute animate-[progress_8s_infinite_linear]" />
         </div>
         <CardContent className="p-6">
           <div className="flex items-start justify-between mb-6">
@@ -388,4 +389,3 @@ async function AdminSystemMetrics() {
     </div>
   )
 }
-
