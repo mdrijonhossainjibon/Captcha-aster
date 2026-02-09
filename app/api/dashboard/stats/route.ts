@@ -64,9 +64,9 @@ export async function GET() {
             }
         }
 
-        // Calculate usage stats
-        const requestsLeft = Math.max(0, statsTotal - statsUsed)
+        
         const percentage = statsTotal > 0 ? (statsUsed / statsTotal) * 100 : 0
+ 
         return NextResponse.json({
             success: true,
             user: {
@@ -81,7 +81,7 @@ export async function GET() {
                 percentage: Math.round(percentage * 10) / 10,
                 resetsIn,
                 totalRequests: statsUsed,
-                requestsLeft,
+                requestsLeft : activePackage.credits - activePackage.creditsUsed,
                 type: activePackage?.type || 'daily'
             },
             package: activePackage
@@ -92,7 +92,7 @@ export async function GET() {
                     price: activePackage?.price,
                     credits: activePackage.credits,
                     creditsUsed: activePackage.creditsUsed,
-                    creditsRemaining: activePackage.credits - activePackage.creditsUsed,
+                    creditsRemaining: activePackage.credits,
                     usagePercentage: Math.round(((activePackage.creditsUsed / activePackage.credits) * 100) * 10) / 10,
                     features: activePackage.features,
                     autoRenew: activePackage.autoRenew,

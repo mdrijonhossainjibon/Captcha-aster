@@ -1,6 +1,9 @@
 "use client"
 
 import { Suspense, useState, useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { RootState } from "@/modules/rootReducer"
+import { fetchDashboardDataRequest } from "@/modules/dashboard/actions"
 
 import { Shield, Zap, Clock, TrendingUp, CheckCircle2, AlertCircle, ArrowUpRight, Sparkles, Bell, Puzzle, Download, Code, Zap as Plugin, User, BarChart3, Package, Key, Copy, RefreshCw, ToggleLeft, ToggleRight, Trash2, Gift, Star, Github, Eye, Wallet, Plus, X, Activity } from "lucide-react"
 import Link from "next/link"
@@ -10,91 +13,57 @@ import { SkeletonStats, SkeletonGrid } from "@/components/skeletons"
 export default function DashboardPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null)
-  const [dashboardApiKeys, setDashboardApiKeys] = useState<any[]>([])
   const [autoRenew, setAutoRenew] = useState(true)
-  const [activePackage, setActivePackage] = useState<any>(null)
   const [generatingKey, setGeneratingKey] = useState<string | null>(null)
-
-  const [dailyUsage, setDailyUsage] = useState<any>(null)
-  const [userData, setUserData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [countdown, setCountdown] = useState<string>("00:00:00")
+
+  const dispatch = useDispatch()
+  const { userData, dailyUsage, activePackage, apiKeys: dashboardApiKeys, loading } = useSelector((state: RootState) => state.dashboard)
 
   // Fetch dashboard data
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
+    dispatch(fetchDashboardDataRequest())
+  }, [dispatch])
 
-  const fetchDashboardData = async () => {
-    try {
+  useEffect(() => {
+    if (activePackage) {
+      setAutoRenew(activePackage.autoRenew)
+    }
+  }, [activePackage])
 
-      // Fetch stats
-      const statsRes = await fetch('/api/dashboard/stats', {
+  useEffect(() => {
+    if (!activePackage?.endDate) return
 
-      })
+    const calculateTimeLeft = () => {
+      const now = Date.now() // always ms
+      const end = Date.parse(activePackage.endDate) // UTC safe
+      const diff = end - now
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setUserData(statsData.user)
-        setDailyUsage(statsData.dailyUsage)
-
-
-        if (statsData.package) {
-          setActivePackage(statsData.package)
-          setAutoRenew(statsData.package.autoRenew)
-        }
+      if (diff <= 0) {
+        setCountdown("00:00:00")
+        return
       }
 
-      // Fetch API keys
-      const keysRes = await fetch('/api/dashboard/api-keys', {
+      const totalSeconds = Math.floor(diff / 1000)
 
-      })
+      const days = Math.floor(totalSeconds / 86400)
+      const hours = Math.floor((totalSeconds % 86400) / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
 
-      if (keysRes.ok) {
-        const keysData = await keysRes.json()
-        setDashboardApiKeys(keysData.apiKeys)
-      }
+      let res = ""
+      if (days > 0) res += `${days}d `
+      res += `${hours.toString().padStart(2, "0")}:` +
+        `${minutes.toString().padStart(2, "0")}:` +
+        `${seconds.toString().padStart(2, "0")}`
 
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-      setLoading(false)
-    }
-  }
-
- useEffect(() => {
-  if (!activePackage?.endDate) return
-
-  const calculateTimeLeft = () => {
-    const now = Date.now() // always ms
-    const end = Date.parse(activePackage.endDate) // UTC safe
-    const diff = end - now
-
-    if (diff <= 0) {
-      setCountdown("00:00:00")
-      return
+      setCountdown(res)
     }
 
-    const totalSeconds = Math.floor(diff / 1000)
-
-    const days = Math.floor(totalSeconds / 86400)
-    const hours = Math.floor((totalSeconds % 86400) / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
-
-    let res = ""
-    if (days > 0) res += `${days}d `
-    res += `${hours.toString().padStart(2, "0")}:` +
-           `${minutes.toString().padStart(2, "0")}:` +
-           `${seconds.toString().padStart(2, "0")}`
-
-    setCountdown(res)
-  }
-
-  calculateTimeLeft()
-  const timer = setInterval(calculateTimeLeft, 1000)
-  return () => clearInterval(timer)
-}, [activePackage?.endDate])
+    calculateTimeLeft()
+    const timer = setInterval(calculateTimeLeft, 1000)
+    return () => clearInterval(timer)
+  }, [activePackage?.endDate])
 
 
   // Get current date and greeting
@@ -143,7 +112,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         // Refresh keys
-        await fetchDashboardData()
+        dispatch(fetchDashboardDataRequest())
       } else {
         console.error('Failed to create key')
       }
@@ -170,7 +139,7 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        await fetchDashboardData()
+        dispatch(fetchDashboardDataRequest())
       } else {
         const data = await response.json()
         alert(data.error || 'Failed to delete key')
@@ -213,7 +182,7 @@ export default function DashboardPage() {
       })
 
       if (createRes.ok) {
-        await fetchDashboardData()
+        dispatch(fetchDashboardDataRequest())
       }
     } catch (error) {
       console.error('Regenerate error:', error)
@@ -253,8 +222,7 @@ export default function DashboardPage() {
       })
 
       if (response.ok) {
-        setActivePackage(null)
-        await fetchDashboardData()
+        dispatch(fetchDashboardDataRequest())
       } else {
         const data = await response.json()
         alert(data.error || 'Failed to cancel package')
@@ -611,7 +579,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-3">
-                {dashboardApiKeys.map((key, index: number) => (
+                {dashboardApiKeys.map((key : any, index: number) => (
                   <div
                     key={index}
                     className={`p-3 rounded-xl transition-colors ${key.status === 'empty' ? 'bg-secondary/30 border border-dashed border-border' : 'bg-secondary/50 hover:bg-secondary'}`}

@@ -1,27 +1,33 @@
 import * as types from './constants';
 
 const initialState = {
-    stats: null,
+    userData: null,
+    dailyUsage: null,
+    activePackage: null,
+    apiKeys: [],
     loading: false,
     error: null,
 };
 
-const adminReducer = (state = initialState, action: any) => {
+const dashboardReducer = (state = initialState, action: any) => {
     switch (action.type) {
-        case types.FETCH_ADMIN_STATS_REQUEST:
+        case types.FETCH_DASHBOARD_DATA_REQUEST:
             return {
                 ...state,
                 loading: true,
                 error: null,
             };
-        case types.FETCH_ADMIN_STATS_SUCCESS:
+        case types.FETCH_DASHBOARD_DATA_SUCCESS:
             return {
                 ...state,
                 loading: false,
-                stats: action.payload,
+                userData: action.payload.userData,
+                dailyUsage: action.payload.dailyUsage,
+                activePackage: action.payload.activePackage,
+                apiKeys: action.payload.apiKeys,
                 error: null,
             };
-        case types.FETCH_ADMIN_STATS_FAILURE:
+        case types.FETCH_DASHBOARD_DATA_FAILURE:
             return {
                 ...state,
                 loading: false,
@@ -32,4 +38,4 @@ const adminReducer = (state = initialState, action: any) => {
     }
 };
 
-export default adminReducer;
+export default dashboardReducer;
