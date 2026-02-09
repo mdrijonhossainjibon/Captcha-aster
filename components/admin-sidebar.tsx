@@ -58,7 +58,7 @@ const aiTrainingItems = [
 ]
 
 const systemItems = [
-
+  { href: "/admin/system/smtp", label: "SMTP Config", icon: Settings },
   { href: "/admin/email", label: "Email Templates", icon: Mail },
   { href: "/admin/database", label: "Database", icon: Database }
 ]
@@ -215,7 +215,11 @@ export function AdminSidebar() {
           </p>
           <div className="space-y-2">
             {systemItems.map((item, idx) => (
-              <NavItem key={item.href} item={item} index={mainNavItems.length + managementItems.length + aiTrainingItems.length + idx} />
+              <NavItem
+                key={item.href}
+                item={item}
+                index={mainNavItems.length + managementItems.length + aiTrainingItems.length + idx}
+              />
             ))}
           </div>
         </div>

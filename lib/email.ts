@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer'
+import { SmtpSetting } from './models/SmtpSetting'
+import connectDB from './mongodb'
 
 interface SendOTPEmailParams {
   email: string
@@ -6,11 +8,25 @@ interface SendOTPEmailParams {
   name?: string
 }
 
-// Create reusable transporter
-const createTransporter = () => {
-  // For development, you can use ethereal email or configure your SMTP
+// Dynamic transporter creator
+const getTransporter = async () => {
+  await connectDB()
+  const dbSettings = await SmtpSetting.findOne({ isActive: true })
+
+  if (dbSettings) {
+    return nodemailer.createTransport({
+      host: dbSettings.host,
+      port: dbSettings.port,
+      secure: dbSettings.secure,
+      auth: {
+        user: dbSettings.user,
+        pass: dbSettings.pass,
+      },
+    })
+  }
+
+  // Fallback to environment variables
   if (process.env.NODE_ENV === 'development' && !process.env.SMTP_HOST) {
-    // In development without SMTP, just log the OTP
     return null
   }
 
@@ -25,9 +41,16 @@ const createTransporter = () => {
   })
 }
 
+const getFromEmail = async () => {
+  const dbSettings = await SmtpSetting.findOne({ isActive: true })
+  if (dbSettings?.from) return dbSettings.from
+  return process.env.SMTP_FROM || process.env.SMTP_USER
+}
+
 export async function sendOTPEmail({ email, otp, name }: SendOTPEmailParams): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
 
     // In development without SMTP, just log the OTP
     if (!transporter) {
@@ -37,7 +60,7 @@ export async function sendOTPEmail({ email, otp, name }: SendOTPEmailParams): Pr
     }
 
     const mailOptions = {
-      from: `"CaptchaⱮaster" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"CaptchaⱮaster" <${fromEmail}>`,
       to: email,
       subject: 'Your Login Verification Code',
       html: `
@@ -149,7 +172,8 @@ export async function sendPasswordResetEmail({
   name,
 }: SendPasswordResetEmailParams): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
 
@@ -162,7 +186,7 @@ export async function sendPasswordResetEmail({
     }
 
     const mailOptions = {
-      from: `"CaptchaⱮaster" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"CaptchaⱮaster" <${fromEmail}>`,
       to: email,
       subject: 'Reset Your Password',
       html: `
@@ -279,7 +303,8 @@ export async function sendWelcomeEmail({
   isOAuth = false,
 }: SendWelcomeEmailParams): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
 
     // In development without SMTP, just log
     if (!transporter) {
@@ -289,7 +314,7 @@ export async function sendWelcomeEmail({
     }
 
     const mailOptions = {
-      from: `"CaptchaⱮaster" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"CaptchaⱮaster" <${fromEmail}>`,
       to: email,
       subject: 'Welcome to CaptchaⱮaster! 🎉',
       html: `
@@ -426,7 +451,8 @@ export async function sendLoginNotification({
   userAgent,
 }: SendLoginNotificationParams): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
 
     // In development without SMTP, just log
     if (!transporter) {
@@ -446,7 +472,7 @@ export async function sendLoginNotification({
     })
 
     const mailOptions = {
-      from: `"CaptchaⱮaster Security" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"CaptchaⱮaster Security" <${fromEmail}>`,
       to: email,
       subject: 'New Login to Your CaptchaⱮaster Account',
       html: `
@@ -589,7 +615,8 @@ export async function sendSubscriptionEmail({
   endDate,
 }: SendSubscriptionEmailParams): Promise<boolean> {
   try {
-    const transporter = createTransporter()
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
 
     if (!transporter) {
       console.log('📧 [DEV MODE] Subscription Email for', email)
@@ -604,7 +631,7 @@ export async function sendSubscriptionEmail({
     })
 
     const mailOptions = {
-      from: `"CaptchaⱮaster Billing" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      from: `"CaptchaⱮaster Billing" <${fromEmail}>`,
       to: email,
       subject: `Subscription Confirmed: ${planName} Plan 🎉`,
       html: `
