@@ -16,7 +16,6 @@ const footerLinks = {
     { label: "Cookies", href: "/cookies" },
   ],
 }
-
 export function Footer() {
   return (
     <footer className="bg-secondary/30 border-t border-border backdrop-blur-sm">
