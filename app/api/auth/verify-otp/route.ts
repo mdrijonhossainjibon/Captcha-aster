@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
             {
                 userId: user._id,
                 email: user.email,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
             },
             JWT_SECRET,
             { expiresIn: '7d' }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
                 email: user.email,
                 name: user.name,
                 balance: user.balance,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
             },
         })
     } catch (error) {

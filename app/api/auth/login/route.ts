@@ -30,12 +30,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Account is deactivated. Please contact support.' }, { status: 403 })
         }
 
-       /*  // Verify password
-        const isPasswordValid = await user.comparePassword(password)
-
-        if (!isPasswordValid) {
-            return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-        } */
+        /*  // Verify password
+         const isPasswordValid = await user.comparePassword(password)
+ 
+         if (!isPasswordValid) {
+             return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+         } */
 
         // Check if 2FA is enabled
         if (user.twoFactorEnabled) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
             {
                 userId: user._id,
                 email: user.email,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
             },
             JWT_SECRET,
             { expiresIn: '7d' }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
                 email: user.email,
                 name: user.name,
                 balance: user.balance,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
             },
         })
     } catch (error) {

@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import User from '@/lib/models/User'
-import { requireAuth } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
     try {
         await connectDB()
 
-        // Get authenticated user from session
-        const authUser = await requireAuth()
+        // Get authenticated user from session and check if admin
+        const authUser = await requireAdmin()
         if (!authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Check if user is admin
-        const currentUser = await User.findById(authUser.userId)
-        if (!currentUser) {
             return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
         }
 
@@ -71,7 +65,7 @@ export async function GET(request: NextRequest) {
                 day: '2-digit'
             }),
             twoFactorEnabled: user.twoFactorEnabled,
-            isAdmin: user.isAdmin
+            role: user.role || 'user'
         }))
 
         return NextResponse.json({
@@ -96,15 +90,9 @@ export async function PATCH(request: NextRequest) {
     try {
         await connectDB()
 
-        // Get authenticated user from session
-        const authUser = await requireAuth()
+        // Get authenticated user from session and check if admin
+        const authUser = await requireAdmin()
         if (!authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Check if user is admin
-        const currentUser = await User.findById(authUser.userId)
-        if (!currentUser ) {
             return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
         }
 
@@ -161,15 +149,9 @@ export async function DELETE(request: NextRequest) {
     try {
         await connectDB()
 
-        // Get authenticated user from session
-        const authUser = await requireAuth()
+        // Get authenticated user from session and check if admin
+        const authUser = await requireAdmin()
         if (!authUser) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-
-        // Check if user is admin
-        const currentUser = await User.findById(authUser.userId)
-        if (!currentUser) {
             return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
         }
 

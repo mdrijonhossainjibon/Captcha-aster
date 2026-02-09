@@ -570,3 +570,158 @@ export async function sendLoginNotification({
     return false
   }
 }
+
+interface SendSubscriptionEmailParams {
+  email: string
+  name: string
+  planName: string
+  price: number
+  credits: number
+  endDate: Date
+}
+
+export async function sendSubscriptionEmail({
+  email,
+  name,
+  planName,
+  price,
+  credits,
+  endDate,
+}: SendSubscriptionEmailParams): Promise<boolean> {
+  try {
+    const transporter = createTransporter()
+
+    if (!transporter) {
+      console.log('📧 [DEV MODE] Subscription Email for', email)
+      console.log('⚠️  Configure SMTP settings in .env.local for production')
+      return true
+    }
+
+    const formattedDate = endDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
+    const mailOptions = {
+      from: `"CaptchaⱮaster Billing" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+      to: email,
+      subject: `Subscription Confirmed: ${planName} Plan 🎉`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td align="center" style="padding: 40px 0;">
+                  <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                      <td style="padding: 40px 40px 20px; text-align: center;">
+                        <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 700;">
+                          Captcha<span style="color: #6366f1;">Ɱaster</span>
+                        </h1>
+                      </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding: 20px 40px;">
+                        <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 24px; font-weight: 600; text-align: center;">
+                          Subscription Activated! 🚀
+                        </h2>
+                        <p style="margin: 0 0 20px; color: #4b5563; font-size: 16px; line-height: 1.5;">
+                          Hi ${name},
+                        </p>
+                        <p style="margin: 0 0 30px; color: #4b5563; font-size: 16px; line-height: 1.5;">
+                          Thank you for choosing CaptchaⱮaster. Your subscription for the <strong>${planName}</strong> plan has been successfully activated.
+                        </p>
+                        
+                        <!-- Plan Details Box -->
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 30px; margin: 30px 0; color: #ffffff;">
+                          <h3 style="margin: 0 0 20px; font-size: 20px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+                            Plan Details
+                          </h3>
+                          <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; opacity: 0.9;">Plan Name:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; text-align: right;">${planName}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; opacity: 0.9;">Credits:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; text-align: right;">${credits.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; opacity: 0.9;">Amount Paid:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; text-align: right;">$${price.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 8px 0; font-size: 14px; opacity: 0.9;">Valid Until:</td>
+                              <td style="padding: 8px 0; font-size: 14px; font-weight: 600; text-align: right;">${formattedDate}</td>
+                            </tr>
+                          </table>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 40px 0;">
+                          <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
+                            Start Solving Now
+                          </a>
+                        </div>
+                        
+                        <div style="margin: 30px 0; padding: 20px; background-color: #f3f4f6; border-radius: 8px; text-align: center;">
+                          <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                            Need your API key? You can find it in your <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard/api-keys" style="color: #6366f1; text-decoration: none; font-weight: 600;">dashboard settings</a>.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 30px 40px; border-top: 1px solid #e5e7eb;">
+                        <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5; text-align: center;">
+                          You received this email because you subscribed to a plan on CaptchaⱮaster.
+                        </p>
+                        <p style="margin: 10px 0 0; color: #9ca3af; font-size: 12px; line-height: 1.5; text-align: center;">
+                          © ${new Date().getFullYear()} CaptchaⱮaster. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+      text: `
+        CaptchaⱮaster - Subscription Activated!
+        
+        Hi ${name},
+        
+        Your subscription for the ${planName} plan has been successfully activated.
+        
+        Plan Details:
+        - Plan Name: ${planName}
+        - Credits: ${credits.toLocaleString()}
+        - Amount Paid: $${price.toFixed(2)}
+        - Valid Until: ${formattedDate}
+        
+        Start using your credits at: ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard
+        
+        © ${new Date().getFullYear()} CaptchaⱮaster. All rights reserved.
+      `,
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log('✅ Subscription email sent successfully to:', email)
+    return true
+  } catch (error) {
+    console.error('❌ Error sending subscription email:', error)
+    return false
+  }
+}

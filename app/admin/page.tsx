@@ -1,22 +1,20 @@
 import { Suspense } from "react"
-import { cookies } from "next/headers"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Package, DollarSign, CreditCard, TrendingUp, TrendingDown, Cpu, HardDrive, MemoryStick, Clock, Thermometer } from "lucide-react"
-import { SkeletonStats, SkeletonGrid } from "@/components/skeletons"
-
-export const metadata = {
-  title: "Admin Dashboard",
-  description: "SparkAI Admin Control Panel",
-}
+import { SkeletonStats } from "@/components/skeletons";
+import { getAuthSession } from "@/lib/auth"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 
 async function fetchDashboardStats() {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const cookieStore = await cookies()
+    const headerList = await headers()
+
     const res = await fetch(`${baseUrl}/api/admin/dashboard-stats`, {
       cache: 'no-store',
       headers: {
-        'Cookie': cookieStore.toString()
+        'Cookie': headerList.get('cookie') || ''
       }
     })
 
@@ -32,10 +30,9 @@ async function fetchDashboardStats() {
 }
 
 async function AdminStats() {
-  const data = await fetchDashboardStats()
+  const data = await fetchDashboardStats();
 
   if (!data || !data.success) {
-    // Fallback data
     return <div className="text-center text-muted-foreground py-8">Failed to load statistics</div>
   }
 
@@ -118,7 +115,13 @@ async function AdminStats() {
   )
 }
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const session = await getAuthSession()
+
+  if (!session || (session.user as any).role !== 'admin') {
+    redirect('/auth/login')
+  }
+
   return (
     <div className="space-y-8 animate-in fade-in duration-1000">
       {/* Dashboard Header */}

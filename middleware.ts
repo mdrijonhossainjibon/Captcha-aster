@@ -5,12 +5,11 @@ export function middleware(request: NextRequest) {
 
   const publicPaths = [
     '/auth/:path',
-    '/api/auth/:path',
+    '/api/auth/:path'
   ]
 
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
 
-  console.log(isPublicPath)
   if (isPublicPath) {
     return NextResponse.next()
   }

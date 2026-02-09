@@ -21,6 +21,8 @@ import {
   Bell,
   Download,
   Package,
+  Users,
+  Share2,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 
@@ -30,6 +32,7 @@ const mainNavItems = [
   { href: "/dashboard/activities", label: "Activities", icon: Zap },
   { href: "/dashboard/pricing", label: "Pricing", icon: Package },
   { href: "/dashboard/topup", label: "Top Up", icon: CreditCard },
+  { href: "/dashboard/referrals", label: "Invite & Earn", icon: Users },
 ]
 
 const accountNavItems = [
@@ -184,6 +187,31 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
         <NavSection title="Resources" items={resourceNavItems} startIndex={7} />
       </nav>
 
+      {/* Referral Card */}
+      <div className="px-3 py-4">
+        <div className="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-4 transition-all duration-300 hover:border-primary/40">
+          <div className="relative z-10 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/20 text-primary">
+                <Share2 className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-bold text-foreground">Invite & Earn</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Earn <span className="text-primary font-bold">15% commission</span> on every credit purchase.
+            </p>
+            <Link
+              href="/dashboard/referrals"
+              className="mt-1 text-[11px] font-bold text-primary flex items-center gap-1 group-hover:gap-2 transition-all"
+            >
+              Get Invite Link <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          {/* Decorative background circle */}
+          <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
+        </div>
+      </div>
+
       {/* User section */}
       <div className="p-3 border-t border-border">
         <div
@@ -202,7 +230,7 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
               {session?.user?.name || "User"}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {(session?.user as any)?.isAdmin ? "Admin Member" : "Pro Member"}
+              {(session?.user as any)?.role === 'admin' ? "Admin Member" : "Pro Member"}
             </p>
           </div>
 

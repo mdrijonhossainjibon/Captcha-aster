@@ -29,7 +29,7 @@ async function seedDatabase() {
                 twoFactorEnabled: false,
                 balance: 100,
                 isActive: true,
-                isAdmin: false,
+                role: 'user',
             },
             {
                 email: 'admin@example.com',
@@ -38,7 +38,7 @@ async function seedDatabase() {
                 twoFactorEnabled: true,
                 balance: 1000,
                 isActive: true,
-                isAdmin: true,
+                role: 'admin',
             },
             {
                 email: 'user2fa@example.com',
@@ -47,7 +47,7 @@ async function seedDatabase() {
                 twoFactorEnabled: true,
                 balance: 50,
                 isActive: true,
-                isAdmin: false,
+                role: 'user',
             },
         ]
 

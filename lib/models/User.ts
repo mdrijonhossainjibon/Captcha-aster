@@ -8,7 +8,7 @@ export interface IUser extends Document {
     twoFactorEnabled: boolean
     balance: number
     isActive: boolean
-    isAdmin: boolean
+    role: string
     oauthProvider?: string
     oauthId?: string
     lastLoginIp?: string
@@ -52,10 +52,11 @@ const UserSchema: Schema<IUser> = new Schema(
             type: Boolean,
             default: true,
         },
-        isAdmin: {
-            type: Boolean,
-            default: false,
-        },
+       role:{
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user',
+       },
         oauthProvider: {
             type: String,
             enum: ['google', 'github', null],

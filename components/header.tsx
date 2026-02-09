@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { AnimatedLogo } from "./animated-logo"
 import { StatusBox } from "./status-box"
-import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, Menu, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2 } from "lucide-react"
+import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, Menu, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -128,6 +128,16 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              <Link href="/dashboard/referrals" className="hidden sm:flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-colors"
+                  title="Invite & Earn 15%"
+                >
+                  <Gift className="w-5 h-5" />
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"

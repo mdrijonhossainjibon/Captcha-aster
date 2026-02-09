@@ -4,6 +4,7 @@ import PricingPlan from '@/lib/models/PricingPlan'
 import Package from '@/lib/models/Package'
 import User from '@/lib/models/User'
 import { requireAuth } from '@/lib/auth'
+import { sendSubscriptionEmail } from '@/lib/email'
 
 // POST /api/pricing/subscribe - Subscribe to a pricing plan
 export async function POST(request: NextRequest) {
@@ -64,8 +65,8 @@ export async function POST(request: NextRequest) {
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + pricingPlan.validityDays)
 
-     
-        
+
+
 
         // Create or Update subscription package
         const packageData = {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
             name: `${pricingPlan.type.toUpperCase()} - ${pricingPlan.code}`,
             price: pricingPlan.price,
             billingCycle: pricingPlan.validityDays > 7 ? 'monthly' : 'monthly',
-            credits : pricingPlan.count,
+            credits: pricingPlan.credits,
             creditsUsed: 0,
             features: [
                 `${pricingPlan.recognition} Recognition`,
@@ -102,6 +103,16 @@ export async function POST(request: NextRequest) {
             $inc: { balance: -pricingPlan.price }
         })
 
+        // Send subscription confirmation email (non-blocking)
+        sendSubscriptionEmail({
+            email: fullUser.email,
+            name: fullUser.name || 'User',
+            planName: pricingPlan.name,
+            price: pricingPlan.price,
+            credits: pricingPlan.credits || 0,
+            endDate,
+        }).catch(err => console.error('Failed to send subscription email:', err))
+
         return NextResponse.json({
             success: true,
             message: 'Subscription created successfully',
@@ -109,7 +120,7 @@ export async function POST(request: NextRequest) {
                 subscriptionId: subscription._id.toString(),
                 planCode: pricingPlan.code,
                 price: pricingPlan.priceDisplay,
-                credits : pricingPlan.count,
+                credits: pricingPlan.count,
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
             },

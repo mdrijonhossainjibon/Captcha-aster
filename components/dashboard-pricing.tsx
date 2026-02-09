@@ -201,7 +201,7 @@ export function DashboardPricing() {
     }
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-background lg:ml-20">
+        <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-background ">
             <div className="max-w-[1600px] mx-auto">
 
                 {/* Header Section */}

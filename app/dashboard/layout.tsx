@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
 
             {/* Main Content */}
-            <main className="min-h-screen transition-all duration-300 lg:ml-64">
+            <main className="min-h-screen transition-all duration-300 lg:ml-60">
                 {children}
             </main>
         </div>

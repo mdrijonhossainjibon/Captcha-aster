@@ -514,17 +514,8 @@ export function DashboardDepositCrypto() {
                             </div>
                         </TabsContent>
 
-                        {/* Web3 Wallet Deposit Tab Content */}
-                        <TabsContent value="wallet" className="mt-6">
-                            <CustomWalletDeposit
-                                onSuccess={(txHash) => {
-                                    console.log("Deposit successful:", txHash)
-                                }}
-                                onError={(error) => {
-                                    console.error("Deposit error:", error)
-                                }}
-                            />
-                        </TabsContent>
+                      
+                      
                     </Tabs>
                 </div>
 

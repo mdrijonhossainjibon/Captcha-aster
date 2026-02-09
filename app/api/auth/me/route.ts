@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
                 balance: user.balance,
                 twoFactorEnabled: user.twoFactorEnabled,
                 isActive: user.isActive,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
             },
@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
                 balance: user.balance,
                 twoFactorEnabled: user.twoFactorEnabled,
                 isActive: user.isActive,
-                isAdmin: user.isAdmin,
+                role: user.role || 'user',
             },
         })
     } catch (error) {

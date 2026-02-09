@@ -12,7 +12,7 @@ import { headers } from 'next/headers'
 export interface AuthUser {
     userId: string
     email: string
-    isAdmin: boolean
+    role: string;
     balance: number
 }
 
@@ -52,29 +52,14 @@ export const authOptions: NextAuthOptions = {
                      throw new Error('Incorrect password')
                  } */
 
-                // Check for 2FA if enabled
-                if (user.twoFactorEnabled) {
-                    if (!credentials.otp) {
-                        // Throw a specific error that the client can catch to show OTP input
-                        throw new Error('2FA_REQUIRED')
-                    }
 
-                    // Verify OTP here (Assuming you have a way to verify it, 
-                    // or for now we'll check against a separate verification logic)
-                    // You might need a separate collection for OTPs or handle it via a custom API
-                    // For this implementation, we'll assume OTP verification is handled or skipped for simplicity 
-                    // unless you have an OTP verification model.
 
-                    // Example (if you had a verify function):
-                    // const isOtpValid = await verifyUserOtp(user._id, credentials.otp);
-                    // if (!isOtpValid) throw new Error('Invalid verification code');
-                }
 
                 return {
                     id: user._id.toString(),
                     email: user.email,
                     name: user.name,
-                    isAdmin: user.isAdmin,
+                    role: user.role || 'user',
                     balance: user.balance,
                 }
             },
@@ -101,20 +86,23 @@ export const authOptions: NextAuthOptions = {
                 const currentIp = heads.get('x-forwarded-for')?.split(',')[0] || heads.get('x-real-ip') || '127.0.0.1'
 
                 // Check if user exists
-                let existingUser = await User.findOne({ email: user.email })
+                let existingUser = await User.findOne({ email: user.email }).lean()
+
 
 
                 if (!existingUser) {
                     // Create new user for OAuth login
-                    existingUser = await User.create({
+                    const newUser = await User.create({
                         email: user.email || '',
                         name: user.name || user.email?.split('@')[0] || 'User',
                         password: 'kopikit942@hopesx.com', // No password for OAuth users
                         isActive: true,
-                        isAdmin: false,
+                        role: 'user',
                         balance: 0,
                         lastLoginIp: currentIp,
                     } as any)
+
+                    existingUser = newUser.toObject()
 
                     // Create Free Trial Package for new OAuth users
                     const trialEndDate = new Date()
@@ -164,15 +152,13 @@ export const authOptions: NextAuthOptions = {
                         }).catch(err => console.error('Failed to send login notification:', err))
 
                         // Update last login IP
-                        existingUser.lastLoginIp = currentIp
-                        await existingUser.save()
+                        await User.findByIdAndUpdate(existingUser._id, { lastLoginIp: currentIp })
                     }
                 }
 
                 // Update user object with database info
-                user.id = existingUser._id.toString()
-                    ; (user as any).isAdmin = existingUser.isAdmin
-                    ; (user as any).balance = existingUser.balance
+                user.id = existingUser._id.toString();
+                (user as any).role = existingUser.role; (user as any).balance = existingUser.balance
             }
 
             return true
@@ -180,7 +166,7 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id
-                token.isAdmin = (user as any).isAdmin
+                token.role = (user as any).role
                 token.balance = (user as any).balance
             }
             return token
@@ -188,14 +174,14 @@ export const authOptions: NextAuthOptions = {
         async session({ session, token }) {
             if (session.user) {
                 (session.user as any).id = token.id;
-                (session.user as any).isAdmin = token.isAdmin;
+                (session.user as any).role = token.role;
                 (session.user as any).balance = token.balance;
             }
             return session
         },
     },
 
-    
+
     pages: {
         signIn: '/auth/login',
         error: '/auth/login', // Redirect to login on error
@@ -227,7 +213,7 @@ export async function requireAuth(): Promise<AuthUser | null> {
     return {
         userId: (session.user as any).id,
         email: session.user.email!,
-        isAdmin: (session.user as any).isAdmin,
+        role: (session.user as any).role,
         balance: (session.user as any).balance,
     }
 }
@@ -238,7 +224,8 @@ export async function requireAuth(): Promise<AuthUser | null> {
 export async function requireAdmin(): Promise<AuthUser | null> {
     const user = await requireAuth()
 
-    if (!user || !user.isAdmin) {
+
+    if (!user || user.role !== 'admin') {
         return null
     }
 

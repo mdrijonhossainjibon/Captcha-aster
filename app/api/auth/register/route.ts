@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
             twoFactorEnabled: true, // Enable 2FA for all new signups
             balance: 0,
             isActive: false, // User is inactive until email is verified
-            isAdmin: false,
+            role: 'user',
             lastLoginIp: currentIp,
         })
 

@@ -405,55 +405,8 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                         <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
                     </Button>
 
-                    {/* Supported Wallets Info */}
-                    <div className="grid grid-cols-4 gap-3">
-                        {/* MetaMask */}
-                        <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/50 border border-border/50">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-600/20 flex items-center justify-center border border-orange-500/30">
-                                <svg className="w-6 h-6" viewBox="0 0 40 40" fill="none">
-                                    <path d="M38.67 10.265l-14.5-8.5a3.5 3.5 0 00-3.34 0l-14.5 8.5a3.5 3.5 0 00-1.66 2.985v17a3.5 3.5 0 001.66 2.985l14.5 8.5a3.5 3.5 0 003.34 0l14.5-8.5a3.5 3.5 0 001.66-2.985v-17a3.5 3.5 0 00-1.66-2.985z" fill="#E17726" />
-                                    <path d="M20 25l-7-4 7-4 7 4-7 4z" fill="#E27625" />
-                                </svg>
-                            </div>
-                            <p className="text-[10px] font-semibold text-center">MetaMask</p>
-                        </div>
 
-                        {/* Coinbase */}
-                        <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/50 border border-border/50">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center border border-blue-500/30">
-                                <svg className="w-6 h-6" viewBox="0 0 40 40" fill="none">
-                                    <rect width="40" height="40" rx="8" fill="#0052FF" />
-                                    <path d="M20 28c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" fill="white" />
-                                    <path d="M17 20h6v-2h-6v2z" fill="#0052FF" />
-                                    <path d="M21 17v6h2v-6h-2z" fill="#0052FF" />
-                                </svg>
-                            </div>
-                            <p className="text-[10px] font-semibold text-center">Coinbase</p>
-                        </div>
 
-                        {/* Trust Wallet */}
-                        <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/50 border border-border/50">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center border border-cyan-500/30">
-                                <svg className="w-6 h-6" viewBox="0 0 40 40" fill="none">
-                                    <rect width="40" height="40" rx="8" fill="#3375BB" />
-                                    <path d="M20 10l8 8-8 8-8-8 8-8z" fill="white" />
-                                    <path d="M20 14l4 4-4 4-4-4 4-4z" fill="#3375BB" />
-                                </svg>
-                            </div>
-                            <p className="text-[10px] font-semibold text-center">Trust</p>
-                        </div>
-
-                        {/* WalletConnect */}
-                        <div className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/50 border border-border/50">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center border border-purple-500/30">
-                                <svg className="w-6 h-6" viewBox="0 0 40 40" fill="none">
-                                    <rect width="40" height="40" rx="8" fill="#3B99FC" />
-                                    <path d="M13 16.5c3.5-3.5 9.5-3.5 13 0l.5.5c.2.2.2.5 0 .7l-1.5 1.5c-.1.1-.3.1-.4 0l-.7-.7c-2.5-2.5-6.5-2.5-9 0l-.7.7c-.1.1-.3.1-.4 0l-1.5-1.5c-.2-.2-.2-.5 0-.7l.7-.5zm16 3.5l1.3 1.3c.2.2.2.5 0 .7l-6 6c-.2.2-.5.2-.7 0l-4.3-4.3c0-.1-.1-.1-.2 0l-4.3 4.3c-.2.2-.5.2-.7 0l-6-6c-.2-.2-.2-.5 0-.7l1.3-1.3c.2-.2.5-.2.7 0l4.3 4.3c.1.1.2.1.2 0l4.3-4.3c.2-.2.5-.2.7 0l4.3 4.3c.1.1.2.1.2 0l4.3-4.3c.2-.2.5-.2.7 0z" fill="white" />
-                                </svg>
-                            </div>
-                            <p className="text-[10px] font-semibold text-center">More</p>
-                        </div>
-                    </div>
 
                     {/* Security Notice */}
                     <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
@@ -472,14 +425,39 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                 <div className="space-y-6">
                     {/* Connected Wallet Info */}
                     <div className="p-4 rounded-xl bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Connected Wallet</p>
-                                <p className="text-sm font-bold font-mono">{userAddress.substring(0, 6)}...{userAddress.substring(38)}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-500 shadow-lg shadow-cyan-500/10">
+                                    <Wallet className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest text-opacity-70">Connected Wallet</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-bold font-mono tracking-tight text-foreground">
+                                            {userAddress.substring(0, 6)}...{userAddress.substring(38)}
+                                        </p>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    </div>
+                                </div>
                             </div>
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+
+                            <div className="flex items-center gap-2">
+                                <div className="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-500 uppercase tracking-tight">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Account Active
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={disconnectWallet}
+                                    className="h-9 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-all duration-300 rounded-xl border border-transparent hover:border-red-400/20"
+                                >
+                                    Disconnect
+                                </Button>
+                            </div>
                         </div>
                     </div>
+
 
                     {/* Step 1: Select Coin */}
                     <div className="space-y-3">
@@ -647,14 +625,6 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                         )}
                     </Button>
 
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={disconnectWallet}
-                        className="w-full text-muted-foreground hover:text-red-400"
-                    >
-                        Disconnect Wallet
-                    </Button>
                 </div>
             )}
         </div>
