@@ -68,15 +68,16 @@ const systemItems = [
 
 
 export function AdminSidebar() {
-  const { data: session } = useSession();
+  const { data: session } : any = useSession();
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
 
+  if (session?.user?.role !== 'admin') {
+ 
+     redirect('/dashboard')
+  }
 
-    if (!session || (session.user as any).role !== 'admin') {
-      redirect('/dashboard')
-    }
-
+   
   useEffect(() => {
     setIsVisible(true)
   }, [])
