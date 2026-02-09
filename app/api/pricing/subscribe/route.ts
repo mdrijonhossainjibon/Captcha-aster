@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json()
-        const { planId, planCode } = body
+        const { planId, planCode } = body;
+
+        
 
         if (!planId && !planCode) {
             return NextResponse.json(
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
         const endDate = new Date()
         endDate.setDate(endDate.getDate() + pricingPlan.validityDays)
 
-
+      console.log(pricingPlan)
 
 
         // Create or Update subscription package
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
             name: `${pricingPlan.type.toUpperCase()} - ${pricingPlan.code}`,
             price: pricingPlan.price,
             billingCycle: pricingPlan.validityDays > 7 ? 'monthly' : 'monthly',
-            credits: pricingPlan.credits,
+            credits: pricingPlan.count || pricingPlan.dailyLimit || pricingPlan.rateLimit,
             creditsUsed: 0,
             features: [
                 `${pricingPlan.recognition} Recognition`,
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Send subscription confirmation email (non-blocking)
-        sendSubscriptionEmail({
+       /*  sendSubscriptionEmail({
             email: fullUser.email,
             name: fullUser.name || 'User',
             planName: pricingPlan.name,
@@ -112,7 +114,9 @@ export async function POST(request: NextRequest) {
             credits: pricingPlan.credits || 0,
             endDate,
         }).catch(err => console.error('Failed to send subscription email:', err))
-
+ */
+       
+       
         return NextResponse.json({
             success: true,
             message: 'Subscription created successfully',

@@ -62,49 +62,40 @@ export default function DashboardPage() {
     }
   }
 
-  // Countdown timer logic
-  useEffect(() => {
-    if (!activePackage?.endDate) return
+ useEffect(() => {
+  if (!activePackage?.endDate) return
 
-    const calculateTimeLeft = () => {
-      const now = new Date()
-      const end = new Date(activePackage.endDate)
-      const diff = end.getTime() - now.getTime()
+  const calculateTimeLeft = () => {
+    const now = Date.now() // always ms
+    const end = Date.parse(activePackage.endDate) // UTC safe
+    const diff = end - now
 
-      if (diff <= 0) {
-        setCountdown("00:00:00")
-        return
-      }
-
-      // Calculate Months
-      let months = (end.getFullYear() - now.getFullYear()) * 12 + (end.getMonth() - now.getMonth())
-      if (end.getDate() < now.getDate()) {
-        months--
-      }
-
-      // Calculate Days remaining after months
-      const tempDate = new Date(now)
-      tempDate.setMonth(tempDate.getMonth() + months)
-      const remainingDiff = end.getTime() - tempDate.getTime()
-
-      const d = Math.floor(remainingDiff / (1000 * 60 * 60 * 24))
-      const h = Math.floor((remainingDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const m = Math.floor((remainingDiff % (1000 * 60 * 60)) / (1000 * 60))
-      const s = Math.floor((remainingDiff % (1000 * 60)) / 1000)
-
-      let res = ""
-      if (months > 0) res += `${months}mo `
-      if (d > 0 || months > 0) res += `${d}d `
-
-      res += `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-
-      setCountdown(res)
+    if (diff <= 0) {
+      setCountdown("00:00:00")
+      return
     }
 
-    calculateTimeLeft()
-    const timer = setInterval(calculateTimeLeft, 1000)
-    return () => clearInterval(timer)
-  }, [activePackage?.endDate])
+    const totalSeconds = Math.floor(diff / 1000)
+
+    const days = Math.floor(totalSeconds / 86400)
+    const hours = Math.floor((totalSeconds % 86400) / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    let res = ""
+    if (days > 0) res += `${days}d `
+    res += `${hours.toString().padStart(2, "0")}:` +
+           `${minutes.toString().padStart(2, "0")}:` +
+           `${seconds.toString().padStart(2, "0")}`
+
+    setCountdown(res)
+  }
+
+  calculateTimeLeft()
+  const timer = setInterval(calculateTimeLeft, 1000)
+  return () => clearInterval(timer)
+}, [activePackage?.endDate])
+
 
   // Get current date and greeting
   const getGreeting = () => {
