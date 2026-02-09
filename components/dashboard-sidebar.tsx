@@ -24,8 +24,10 @@ import {
   Package,
   Users,
   Share2,
+  X,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
+import { Button } from "@/components/ui/button"
 
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -184,6 +186,18 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
             <span className="text-xs text-muted-foreground">Captcha Solver</span>
           </div>
         </Link>
+
+        {/* Mobile Close Button */}
+        {onCloseMobileMenu && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCloseMobileMenu}
+            className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-xl transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        )}
       </div>
 
 

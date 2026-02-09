@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 }
 
 import AuthProvider from "@/components/SessionProvider"
+import { StoreProvider } from "@/modules/StoreProvider"
 
 export default function RootLayout({
   children,
@@ -27,10 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.className} antialiased text-[13.5px] leading-relaxed tracking-tight`}>
-        <AuthProvider>
-          {children}
-
-        </AuthProvider>
+        <StoreProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </StoreProvider>
       </body>
     </html>
   )

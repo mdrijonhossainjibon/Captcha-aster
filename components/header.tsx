@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, Menu, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift } from "lucide-react"
+import { Clock, RefreshCw, AlertTriangle, Bell, Settings, User, MoreVertical, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -48,17 +48,6 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
         <div className="flex items-center justify-between h-16">
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-3">
-            {onMenuToggle && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onMenuToggle}
-                className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-primary/5"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-
-            )}
             <Link href="/" className="lg:hidden flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary/10 overflow-hidden transition-all duration-300 group-hover:scale-105">
                 <Image
@@ -118,19 +107,6 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                 <Code className="w-4 h-4 text-foreground" />
                 <span className="text-sm font-medium text-foreground hidden lg:inline">API Library</span>
               </Link>
-
-              {/* Wallet Balance */}
-              <div className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl bg-secondary/50 transition-colors border border-border/30">
-                <Wallet className="w-4 h-4 text-foreground" />
-                <div className="flex items-baseline gap-1">
-                  {isLoadingBalance && balance === 0 ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                  ) : (
-                    <span className="text-sm font-bold text-foreground">${balance.toFixed(4)}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground hidden sm:inline uppercase">USD</span>
-                </div>
-              </div>
             </div>
 
             {/* Separator */}
@@ -138,6 +114,19 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Wallet Balance - Moved to visible on mobile/desktop */}
+              <div className="flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-xl bg-secondary/30 transition-colors border border-border/30">
+                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                <div className="flex items-baseline gap-1">
+                  {isLoadingBalance && balance === 0 ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                  ) : (
+                    <span className="text-sm font-bold text-foreground">${balance.toFixed(4)}</span>
+                  )}
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline uppercase">USD</span>
+                </div>
+              </div>
+
               <Link href="/dashboard/referrals" className="hidden sm:flex">
                 <Button
                   variant="ghost"
@@ -163,13 +152,18 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
               >
                 <Settings className="w-5 h-5" />
               </Button>
-              {/* Profile Avatar */}
-              <div className="relative group/avatar cursor-pointer">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center ml-2 border border-border hover:border-primary/50 transition-all duration-300">
-                  <User className="w-5 h-5 text-primary" />
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-card rounded-full" />
-              </div>
+
+              {/* Mobile Menu Toggle - Added to Right */}
+              {onMenuToggle && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onMenuToggle}
+                  className="lg:hidden text-muted-foreground hover:text-foreground hover:bg-primary/5 rounded-xl ml-1"
+                >
+                  <MoreVertical className="w-6 h-6" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

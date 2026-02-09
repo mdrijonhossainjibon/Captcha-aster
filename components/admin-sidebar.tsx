@@ -8,7 +8,7 @@ import { useEffect } from "react"
 
 import { useState } from "react"
 
-import { usePathname } from "next/navigation"
+import { redirect, usePathname } from "next/navigation"
 
 import {
   LayoutDashboard,
@@ -68,9 +68,14 @@ const systemItems = [
 
 
 export function AdminSidebar() {
-  const { data: session } = useSession()
+  const { data: session } = useSession();
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
+
+
+    if (!session || (session.user as any).role !== 'admin') {
+      redirect('/dashboard')
+    }
 
   useEffect(() => {
     setIsVisible(true)

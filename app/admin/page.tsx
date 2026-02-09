@@ -2,9 +2,9 @@ import { Suspense } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Package, DollarSign, CreditCard, TrendingUp, TrendingDown, Cpu, HardDrive, MemoryStick, Clock, Thermometer } from "lucide-react"
 import { SkeletonStats } from "@/components/skeletons";
-import { getAuthSession } from "@/lib/auth"
+
 import { headers } from "next/headers"
-import { redirect } from "next/navigation"
+
 
 async function fetchDashboardStats() {
   try {
@@ -116,12 +116,8 @@ async function AdminStats() {
 }
 
 export default async function AdminDashboard() {
-  const session = await getAuthSession()
-
-  if (!session || (session.user as any).role !== 'admin') {
-    redirect('/auth/login')
-  }
-
+ 
+  
   return (
     <div className="space-y-8 animate-in fade-in duration-1000">
       {/* Dashboard Header */}
