@@ -43,6 +43,7 @@ export default function KolotiCachePage() {
     } = useSelector((state: RootState) => state.aiTraining)
 
     const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(10)
     const [selectedRecord, setSelectedRecord] = useState<KolotiCacheRecord | null>(null)
@@ -51,22 +52,23 @@ export default function KolotiCachePage() {
     const [editingRecord, setEditingRecord] = useState<KolotiCacheRecord | null>(null)
     const [answerInput, setAnswerInput] = useState("")
 
-    // Fetch records from Redux
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm)
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [searchTerm])
+
+    // Fetch records from Redux when page, limit, or search changes
     useEffect(() => {
         fetchRecords()
-    }, [currentPage, itemsPerPage, dispatch])
+    }, [currentPage, itemsPerPage, debouncedSearchTerm, dispatch])
 
     // Reset to page 1 when search changes
     useEffect(() => {
         setCurrentPage(1)
-    }, [searchTerm])
-
-    // Fetch when page resets
-    useEffect(() => {
-        if (currentPage === 1) {
-            fetchRecords()
-        }
-    }, [currentPage])
+    }, [debouncedSearchTerm])
 
     // Handle errors from Redux
     useEffect(() => {
@@ -77,7 +79,7 @@ export default function KolotiCachePage() {
 
     const fetchRecords = () => {
         dispatch(actions.fetchKolotiCacheRequest({
-            search: searchTerm,
+            search: debouncedSearchTerm,
             page: currentPage,
             limit: itemsPerPage
         }))
@@ -240,15 +242,26 @@ export default function KolotiCachePage() {
                 <CardContent className="pt-6">
                     <div className="flex gap-4 items-center">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            {isLoading ? (
+                                <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
+                            ) : (
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            )}
                             <input
                                 type="text"
                                 placeholder="Search by image hash or question..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && fetchRecords()}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                             />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm("")}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                         <Button
                             variant="outline"
