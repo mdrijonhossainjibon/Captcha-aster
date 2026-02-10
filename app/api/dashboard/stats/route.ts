@@ -34,7 +34,8 @@ export async function GET() {
         })
 
         // Get active package
-        const activePackage = await Package.findOne({ userId, status: 'active' })
+        const activePackage = await Package.findOne({ userId, status: 'active' });
+ 
 
      
         
@@ -81,7 +82,7 @@ export async function GET() {
                 percentage: Math.round(percentage * 10) / 10,
                 resetsIn,
                 totalRequests: statsUsed,
-                requestsLeft : activePackage.credits - activePackage.creditsUsed,
+                requestsLeft : activePackage ?   activePackage.credits - activePackage.creditsUsed : 0,
                 type: activePackage?.type || 'daily'
             },
             package: activePackage
@@ -102,6 +103,7 @@ export async function GET() {
                 : null,
         })
     } catch (error :any ) {
+        console.log(error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
