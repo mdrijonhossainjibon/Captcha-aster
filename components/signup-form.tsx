@@ -15,6 +15,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { notification } from 'antd'
 
 
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '@/modules/rootReducer'
+import * as authActions from '@/modules/auth/actions'
+
 type SignupStep = 'credentials' | 'otp' | 'success'
 
 const passwordRequirements = [
@@ -26,6 +30,9 @@ const passwordRequirements = [
 
 export function SignupForm() {
   const router = useRouter()
+  const dispatch = useDispatch()
+  const { loading: isLoading, registrationSuccess, verificationSuccess, requiresVerification } = useSelector((state: RootState) => state.auth)
+
   const [step, setStep] = useState<SignupStep>('credentials')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -34,17 +41,41 @@ export function SignupForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [agreeTerms, setAgreeTerms] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [timer, setTimer] = useState(300)
   const [resendDisabled, setResendDisabled] = useState(true)
-  const [twoFaEnabled, setTwoFaEnabled] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100)
+    dispatch(authActions.resetAuthState()) // Clear state on mount
     return () => clearTimeout(timer)
-  }, [])
+  }, [dispatch])
+
+  // Handle Redux Success states
+  useEffect(() => {
+    if (registrationSuccess) {
+      if (requiresVerification) {
+        setStep('otp')
+        setTimer(300)
+        setResendDisabled(true)
+      } else {
+        setStep('success')
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 2000)
+      }
+    }
+  }, [registrationSuccess, requiresVerification, router])
+
+  useEffect(() => {
+    if (verificationSuccess) {
+      setStep('success')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 2000)
+    }
+  }, [verificationSuccess, router])
 
   // OTP timer countdown
   useEffect(() => {
@@ -63,7 +94,7 @@ export function SignupForm() {
     return () => clearInterval(interval)
   }, [step])
 
-  const handleSubmitCredentials = async (e: React.FormEvent) => {
+  const handleSubmitCredentials = (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirmPassword) {
       notification.error({
@@ -73,47 +104,7 @@ export function SignupForm() {
       return
     }
 
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        notification.error({
-          message: 'Registration Failed',
-          description: data.error || 'Something went wrong during registration.',
-        })
-        setIsLoading(false)
-        return
-      }
-
-      notification.success({
-        message: 'Account created!',
-        description: 'Please verify your email to continue.',
-      })
-
-      console.log('✅ Account created, OTP sent to:', email)
-      setTwoFaEnabled(true)
-      setStep('otp')
-      setTimer(300)
-      setResendDisabled(true)
-    } catch (error) {
-      console.error('Registration error:', error)
-      notification.error({
-        message: 'Connection Error',
-        description: 'An error occurred during registration. Please try again.',
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    dispatch(authActions.registerRequest({ name, email, password }))
   }
 
   const handleOtpChange = (index: number, value: string) => {
@@ -135,103 +126,19 @@ export function SignupForm() {
     }
   }
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault()
     const otpCode = otp.join('')
     if (otpCode.length !== 6) return
 
-    setIsLoading(true)
-
-    try {
-      const response = await fetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp: otpCode }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        notification.error({
-          message: 'Invalid OTP',
-          description: data.error || 'The code you entered is incorrect.',
-        })
-        setIsLoading(false)
-        return
-      }
-
-      notification.success({
-        message: 'Email Verified',
-        description: 'Your email has been verified successfully!',
-      })
-
-      // Store token and user data
-      localStorage.setItem('authToken', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-
-      console.log('✅ Email verified successfully')
-      setStep('success')
-
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 2000)
-    } catch (error) {
-      console.error('Email verification error:', error)
-      notification.error({
-        message: 'Verification Error',
-        description: 'An error occurred during verification. Please try again.',
-      })
-    } finally {
-      setIsLoading(false)
-    }
+    dispatch(authActions.verifyEmailRequest({ email, otp: otpCode }))
   }
 
-  const handleResendOtp = async () => {
-    setIsLoading(true)
+  const handleResendOtp = () => {
     setResendDisabled(true)
-
-    try {
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        notification.error({
-          message: 'Resend Failed',
-          description: data.error || 'Failed to resend verification code.',
-        })
-        setResendDisabled(false)
-        setIsLoading(false)
-        return
-      }
-
-      notification.success({
-        message: 'Code Resent',
-        description: 'A new verification code has been sent to your email.',
-      })
-
-      console.log('✅ Verification code resent')
-      setOtp(['', '', '', '', '', ''])
-      setTimer(300)
-    } catch (error) {
-      console.error('Resend verification error:', error)
-      notification.error({
-        message: 'Error',
-        description: 'An error occurred. Please try again.',
-      })
-      setResendDisabled(false)
-    } finally {
-      setIsLoading(false)
-    }
+    setOtp(['', '', '', '', '', ''])
+    setTimer(300)
+    dispatch(authActions.resendVerificationRequest({ email }))
   }
 
   const formatTime = (seconds: number) => {
@@ -241,7 +148,6 @@ export function SignupForm() {
   }
 
   const handleGoogleSignup = async () => {
-    setIsLoading(true)
     try {
       const result = await signIn('google', {
         callbackUrl: '/dashboard',
@@ -253,7 +159,6 @@ export function SignupForm() {
           message: 'Google Signup Failed',
           description: 'Could not connect to Google. Please try again.',
         })
-        setIsLoading(false)
       }
     } catch (error) {
       console.error('Google signup error:', error)
@@ -261,7 +166,6 @@ export function SignupForm() {
         message: 'External Auth Error',
         description: 'An error occurred during Google signup. Please try again.',
       })
-      setIsLoading(false)
     }
   }
 

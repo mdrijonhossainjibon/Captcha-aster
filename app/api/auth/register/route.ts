@@ -43,11 +43,11 @@ export async function POST(request: NextRequest) {
 
         // Validate Gmail only
         const emailLower = email.toLowerCase()
-        if (!emailLower.endsWith('@gmail.com')) {
+    /*     if (!emailLower.endsWith('@gmail.com')) {
             return NextResponse.json({
                 error: 'Only Gmail addresses are allowed for registration',
             }, { status: 400 })
-        }
+        } */
 
         // Check if user already exists
         const existingUser = await User.findOne({ email: emailLower })
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
             name,
             email: emailLower,
             password,
-            twoFactorEnabled: true, // Enable 2FA for all new signups
+            twoFactorEnabled: false, // Enable 2FA for all new signups
             balance: 0,
-            isActive: false, // User is inactive until email is verified
+            isActive: true, // User is active immediately (OTP disabled)
             role: 'user',
             lastLoginIp: currentIp,
         })
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
             status: 'active',
         })
 
+        /*
         // Generate OTP for email verification
         const otpCode = generateOTP()
 
@@ -122,14 +123,14 @@ export async function POST(request: NextRequest) {
         if (!emailSent) {
             console.warn('⚠️  OTP email failed to send, but continuing...')
         }
+        */
 
-        console.log('✅ User registered successfully:', user.email)
 
         return NextResponse.json({
             success: true,
-            message: 'Account created successfully. Please verify your email.',
+            message: 'Account created successfully.',
             email: user.email,
-            requiresVerification: true,
+            requiresVerification: false,
         })
     } catch (error: any) {
         console.error('Registration error:', error)
