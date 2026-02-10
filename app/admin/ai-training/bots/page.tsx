@@ -16,8 +16,10 @@ import {
     Hash,
     Calendar,
     Database,
-    RefreshCw
+    RefreshCw,
+    Clock
 } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
 
 interface KolotiCacheRecord {
     id: string
@@ -95,13 +97,15 @@ export default function KolotiCachePage() {
         })
     }
 
-    // Refresh after delete/update
+    // Refresh after delete
+    const [wasDeleting, setWasDeleting] = useState(false)
     useEffect(() => {
-        // This is a bit tricky with just isDeleting/isSaving. 
-        // Usually we want to know when it *finishes* successfully.
-        // In a real app, we might have a 'success' flag in the state or use a promise-based action.
-        // For now, let's assume we refresh when the flag turns false and there was a transition.
-    }, [isDeleting, isSaving])
+        if (wasDeleting && !isDeleting && !error) {
+            message.success('Record deleted successfully')
+            fetchRecords()
+        }
+        setWasDeleting(isDeleting)
+    }, [isDeleting, error])
 
     // Actually, it's better to trigger a refresh in the saga or handle it here if we track the previous state.
     // However, for simplicity and to stay close to the original logic:
@@ -157,15 +161,16 @@ export default function KolotiCachePage() {
     }
 
     // Close edit modal on success
+    const [wasSaving, setWasSaving] = useState(false)
     useEffect(() => {
-        if (!isSaving && editingRecord && isEditModalOpen) {
-            // This is still risky without a clear "success" state.
-            // But let's assume if it's no longer saving and there's no error, it's done.
-            if (!error) {
-                // setIsEditModalOpen(false) // Might be too aggressive
-            }
+        if (wasSaving && !isSaving && !error && isEditModalOpen) {
+            setIsEditModalOpen(false)
+            setEditingRecord(null)
+            message.success('Answer updated successfully')
+
         }
-    }, [isSaving, error])
+        setWasSaving(isSaving)
+    }, [isSaving, error, isEditModalOpen, wasSaving])
 
     return (
         <div className="p-8">
@@ -177,16 +182,6 @@ export default function KolotiCachePage() {
                         <p className="text-muted-foreground">AI training cache records and responses</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRefresh}
-                            disabled={isLoading}
-                            className="gap-2"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
                         <div className="text-right">
                             <p className="text-sm text-muted-foreground">Total Records</p>
                             <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
@@ -243,7 +238,7 @@ export default function KolotiCachePage() {
             {/* Search */}
             <Card className="mb-6">
                 <CardContent className="pt-6">
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 items-center">
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
@@ -255,6 +250,15 @@ export default function KolotiCachePage() {
                                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                             />
                         </div>
+                        <Button
+                            variant="outline"
+                            onClick={handleRefresh}
+                            disabled={isLoading}
+                            className="gap-2 h-10 px-6 bg-secondary hover:bg-secondary/80 border-border"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -318,8 +322,16 @@ export default function KolotiCachePage() {
                                                     [{record.answer.join(', ')}]
                                                 </span>
                                             </td>
-                                            <td className="py-4 px-4 text-sm text-muted-foreground">
-                                                {record.createdAt}
+                                            <td className="py-4 px-4 text-sm text-muted-foreground whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <span className="text-foreground flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                                                        {formatDistanceToNow(new Date(record.createdAt), { addSuffix: true })}
+                                                    </span>
+                                                    <span className="text-[10px] opacity-50">
+                                                        {new Date(record.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="py-4 px-4">
                                                 <div className="flex items-center justify-center gap-2">
@@ -499,9 +511,12 @@ export default function KolotiCachePage() {
 
                         <div>
                             <label className="text-sm font-semibold text-foreground mb-2 block">Created At</label>
-                            <p className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground">
-                                {selectedRecord.createdAt}
-                            </p>
+                            <div className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground flex items-center justify-between">
+                                <span>{new Date(selectedRecord.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}</span>
+                                <span className="text-sm text-muted-foreground font-medium bg-secondary px-2.5 py-1 rounded-lg">
+                                    {formatDistanceToNow(new Date(selectedRecord.createdAt), { addSuffix: true })}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 )}
