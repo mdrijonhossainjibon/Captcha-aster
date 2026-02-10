@@ -115,6 +115,33 @@ export default function KolotiCachePage() {
         fetchRecords()
     }
 
+    // Helper to format date with +6 hours offset for BD time
+    const formatBDDate = (dateStr: string | undefined, type: 'distance' | 'full' = 'distance') => {
+        if (!dateStr) return type === 'distance' ? 'Never' : '-';
+
+        try {
+            // Try parsing directly
+            let d = new Date(dateStr);
+
+            // If invalid, try normalizing SQL format
+            if (isNaN(d.getTime())) {
+                const normalized = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+                d = new Date(normalized);
+            }
+
+            if (isNaN(d.getTime())) return type === 'distance' ? 'Invalid date' : 'N/A';
+
+            // Add 6 hours for BD time (UTC+6)
+            const bdDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
+
+            return type === 'distance'
+                ? formatDistanceToNow(bdDate, { addSuffix: true })
+                : bdDate.toLocaleString();
+        } catch (e) {
+            return type === 'distance' ? 'Invalid date' : 'N/A';
+        }
+    };
+
     const viewDetails = (record: KolotiCacheRecord) => {
         setSelectedRecord(record)
         setIsDetailModalOpen(true)
@@ -339,20 +366,10 @@ export default function KolotiCachePage() {
                                                 <div className="flex flex-col">
                                                     <span className="text-foreground flex items-center gap-1.5">
                                                         <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                                        {(() => {
-                                                            const d = new Date(record.createdAt);
-                                                            // If the string doesn't have T or Z, it's often a raw SQL timestamp which needs T and Z
-                                                            const dateStr = record.createdAt.includes('T') ? record.createdAt : record.createdAt.replace(' ', 'T') + 'Z';
-                                                            const utcDate = new Date(dateStr);
-                                                            return formatDistanceToNow(isNaN(utcDate.getTime()) ? d : utcDate, { addSuffix: true });
-                                                        })()}
+                                                        {formatBDDate(record.createdAt, 'distance')}
                                                     </span>
                                                     <span className="text-[10px] opacity-50">
-                                                        {(() => {
-                                                            const d = new Date(record.createdAt);
-                                                            const utcDate = isNaN(d.getTime()) ? new Date(record.createdAt + 'Z') : d;
-                                                            return utcDate.toLocaleString();
-                                                        })()}
+                                                        {formatBDDate(record.createdAt, 'full')}
                                                     </span>
                                                 </div>
                                             </td>
@@ -536,18 +553,10 @@ export default function KolotiCachePage() {
                             <label className="text-sm font-semibold text-foreground mb-2 block">Created At</label>
                             <div className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground flex items-center justify-between">
                                 <span>
-                                    {(() => {
-                                        const d = new Date(selectedRecord.createdAt);
-                                        const utcDate = isNaN(d.getTime()) ? new Date(selectedRecord.createdAt + 'Z') : d;
-                                        return utcDate.toLocaleString();
-                                    })()}
+                                    {formatBDDate(selectedRecord.createdAt, 'full')}
                                 </span>
                                 <span className="text-sm text-muted-foreground font-medium bg-secondary px-2.5 py-1 rounded-lg">
-                                    {(() => {
-                                        const d = new Date(selectedRecord.createdAt);
-                                        const utcDate = isNaN(d.getTime()) || !selectedRecord.createdAt.includes('T') ? new Date(selectedRecord.createdAt.replace(' ', 'T') + 'Z') : d;
-                                        return formatDistanceToNow(utcDate, { addSuffix: true });
-                                    })()}
+                                    {formatBDDate(selectedRecord.createdAt, 'distance')}
                                 </span>
                             </div>
                         </div>
