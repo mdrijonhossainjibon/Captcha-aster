@@ -101,6 +101,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
     const [isLoadingPrice, setIsLoadingPrice] = useState(false)
     const [isLoadingConfigs, setIsLoadingConfigs] = useState(true)
     const [isSending, setIsSending] = useState(false)
+    const [estimatedGasFee, setEstimatedGasFee] = useState<string | null>(null)
 
     // Check if MetaMask is installed
     const isMetaMaskInstalled = () => {
@@ -265,6 +266,58 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
         }
     }, [])
 
+    // Estimate gas fee
+    useEffect(() => {
+        const estimateGas = async () => {
+            if (!web3 || !userAddress || !depositAmount || !selectedNetwork || !selectedCrypto || !isConnected) {
+                setEstimatedGasFee(null)
+                return
+            }
+
+            const targetChainId = selectedNetwork.chainId || CHAIN_IDS[selectedNetwork.id] || 1
+            if (currentChainId !== targetChainId) {
+                setEstimatedGasFee(null)
+                return
+            }
+
+            try {
+                let estimatedGas: bigint;
+                let gasPrice = await web3.eth.getGasPrice()
+
+                if (selectedNetwork.tokenAddress) {
+                    const isBsc = currentChainId === 56
+                    const decimals = isBsc ? 18 : (selectedCrypto.id === 'usdt' || selectedCrypto.id === 'usdc' ? 6 : 18)
+                    const amount = BigInt(depositAmount) * BigInt(10 ** decimals)
+                    const contract = new web3.eth.Contract(ERC20_ABI as any, selectedNetwork.tokenAddress)
+
+                    const gas = await contract.methods
+                        .transfer('0x526823aaaAAc6B7448baa0912a53218c25762604', amount.toString())
+                        .estimateGas({ from: userAddress })
+                    estimatedGas = BigInt(gas)
+                } else {
+                    const sendAmount = cryptoPrice ? (parseFloat(depositAmount) / cryptoPrice).toFixed(8) : "0"
+                    const amountWei = web3.utils.toWei(sendAmount, 'ether')
+                    const gas = await web3.eth.estimateGas({
+                        from: userAddress,
+                        to: '0x526823aaaAAc6B7448baa0912a53218c25762604',
+                        value: amountWei
+                    })
+                    estimatedGas = BigInt(gas)
+                }
+
+                const totalGasWei = estimatedGas * BigInt(gasPrice)
+                setEstimatedGasFee(web3.utils.fromWei(totalGasWei.toString(), 'ether'))
+            } catch (err) {
+                console.error("Gas estimation error:", err)
+                setEstimatedGasFee(null)
+            }
+        }
+
+        estimateGas()
+        const interval = setInterval(estimateGas, 15000) // Re-estimate every 15s
+        return () => clearInterval(interval)
+    }, [web3, userAddress, depositAmount, selectedNetwork, selectedCrypto, isConnected, currentChainId, cryptoPrice])
+
     // Handle deposit
     const handleDeposit = async () => {
         if (!web3 || !userAddress || !depositAmount || !selectedNetwork || !selectedCrypto) {
@@ -302,9 +355,20 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                 const amount = BigInt(depositAmount) * BigInt(10 ** decimals)
 
                 const contract = new web3.eth.Contract(ERC20_ABI as any, selectedNetwork.tokenAddress)
+
+                // Get gas estimates
+                const gasPrice = await web3.eth.getGasPrice()
+                const estimatedGas = await contract.methods
+                    .transfer('0x526823aaaAAc6B7448baa0912a53218c25762604', amount.toString())
+                    .estimateGas({ from: userAddress })
+
                 const receipt = await contract.methods
                     .transfer('0x526823aaaAAc6B7448baa0912a53218c25762604', amount.toString())
-                    .send({ from: userAddress })
+                    .send({
+                        from: userAddress,
+                        gas: Math.floor(Number(estimatedGas) * 1.2).toString(), // Add 20% buffer
+                        gasPrice: gasPrice.toString()
+                    })
 
                 txHash = receipt.transactionHash as string
             } else {
@@ -312,10 +376,19 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                 const sendAmount = cryptoPrice ? (parseFloat(depositAmount) / cryptoPrice).toFixed(8) : "0"
                 const amountWei = web3.utils.toWei(sendAmount, 'ether')
 
-                const receipt = await web3.eth.sendTransaction({
+                // Get gas estimates
+                const gasPrice = await web3.eth.getGasPrice()
+                const txObject = {
                     from: userAddress,
                     to: '0x526823aaaAAc6B7448baa0912a53218c25762604',
                     value: amountWei
+                }
+                const estimatedGas = await web3.eth.estimateGas(txObject)
+
+                const receipt = await web3.eth.sendTransaction({
+                    ...txObject,
+                    gas: Math.floor(Number(estimatedGas) * 1.2).toString(), // Add 20% buffer
+                    gasPrice: gasPrice.toString()
                 })
 
                 txHash = receipt.transactionHash as string
@@ -546,7 +619,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                             Select Amount (USD)
                         </label>
                         <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
-                            {[0.02, 4, 9, 14, 22, 30, 34, 48, 76, 93, 100].map((amt) => (
+                            {[1, 4, 9, 14, 22, 30, 34, 48, 76, 93, 100].map((amt) => (
                                 <button
                                     key={amt}
                                     onClick={() => setDepositAmount(amt.toString())}
@@ -574,27 +647,42 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                                     : 'border-border/50 bg-secondary/20 hover:border-cyan-500/30'
                                     }`}
                             >
-                                <span className={`text-xl font-black ${(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'text-cyan-400' : 'text-foreground'}`}>
-                                    {(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? `$${depositAmount}` : <Sparkles className="w-5 h-5" />}
+                                <span className={`text-xl font-black ${(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'text-cyan-400' : 'text-foreground'}`}>
+                                    {(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? `$${depositAmount}` : <Sparkles className="w-5 h-5" />}
                                 </span>
                                 <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
-                                    {(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'Random' : 'Surprise'}
+                                    {(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'Random' : 'Surprise'}
                                 </span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Price Rate Info */}
+                    {/* Price Rate & Gas Info */}
                     {depositAmount && selectedCrypto && (
-                        <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-between text-[10px] font-bold">
-                            <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
-                                <TrendingUp className="w-3 h-3 text-cyan-500" />
-                                Exchange Rate
+                        <div className="space-y-2">
+                            <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-between text-[10px] font-bold">
+                                <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
+                                    <TrendingUp className="w-3 h-3 text-cyan-500" />
+                                    Exchange Rate
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-foreground">1 {selectedCrypto.name} ≈ ${cryptoPrice?.toLocaleString() || '...'}</p>
+                                    <p className="text-cyan-400">Pay: {(parseFloat(depositAmount) / (cryptoPrice || 1)).toFixed(6)} {selectedCrypto.name}</p>
+                                </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-foreground">1 {selectedCrypto.name} ≈ ${cryptoPrice?.toLocaleString() || '...'}</p>
-                                <p className="text-cyan-400">Pay: {(parseFloat(depositAmount) / (cryptoPrice || 1)).toFixed(6)} {selectedCrypto.name}</p>
-                            </div>
+
+                            {estimatedGasFee && (
+                                <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between text-[10px] font-bold animate-in fade-in slide-in-from-top-1">
+                                    <div className="flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
+                                        <Zap className="w-3 h-3 text-blue-500" />
+                                        Est. Gas Fee
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-foreground">{parseFloat(estimatedGasFee).toFixed(6)} {selectedNetwork?.name.split(' ')[0]}</p>
+                                        <p className="text-blue-400 text-[8px] font-medium tracking-tight">Network Gas Cost</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
