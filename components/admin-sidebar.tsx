@@ -49,7 +49,7 @@ const mainNavItems = [
 
 const managementItems = [
   { href: "/admin/packages", label: "Packages", icon: Package },
-  /*  { href: "/admin/wallet", label: "Wallet", icon: Wallet }, */
+     { href: "/admin/wallet", label: "Wallet", icon: Wallet }, 
   { href: "/admin/topup-history", label: "Topup History", icon: History },
 ]
 

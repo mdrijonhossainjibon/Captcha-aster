@@ -44,8 +44,8 @@ export function Footer() {
             <div className="flex gap-4">
               {[
                 { icon: Twitter, href: "#", color: "hover:text-sky-400" },
-                { icon: MessageSquare, href: "#", color: "hover:text-indigo-400" },
-                { icon: Github, href: "#", color: "hover:text-white" }
+                { icon: MessageSquare, href: "https://t.me/CaptchaMasterBangladesh", color: "hover:text-indigo-400" },
+                { icon: Github, href: "https://github.com/rk643264321/Captcha-aster-Extension", color: "hover:text-white" }
               ].map((social, i) => (
                 <Link
                   key={i}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import {
     Wallet,
     CheckCircle2,
@@ -16,6 +17,8 @@ import { Button } from "@/components/ui/button"
 import { Select, notification, QRCode } from "antd"
 import Image from "next/image"
 import Web3 from 'web3'
+import { RootState } from "@/modules/rootReducer"
+import { fetchSettingsRequest } from "@/modules/settings/actions"
 
 // ERC20 ABI for token transfers
 const ERC20_ABI = [
@@ -88,6 +91,10 @@ const CHAIN_IDS: Record<string, number> = {
 }
 
 export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositProps) {
+    const dispatch = useDispatch()
+    const { data: settings } = useSelector((state: RootState) => state.settings)
+    const adminWalletAddress = settings.mainWalletAddress || '0x526823aaaAAc6B7448baa0912a53218c25762604';
+
     const [web3, setWeb3] = useState<Web3 | null>(null)
     const [userAddress, setUserAddress] = useState<string>("")
     const [isConnected, setIsConnected] = useState(false)
@@ -219,6 +226,8 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
     // Fetch crypto configurations
     useEffect(() => {
+        dispatch(fetchSettingsRequest())
+
         const fetchConfigs = async () => {
             try {
                 const response = await fetch('/api/crypto/config')
@@ -303,7 +312,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
                 const contract = new web3.eth.Contract(ERC20_ABI as any, selectedNetwork.tokenAddress)
                 const receipt = await contract.methods
-                    .transfer('0x526823aaaAAc6B7448baa0912a53218c25762604', amount.toString())
+                    .transfer(adminWalletAddress, amount.toString())
                     .send({ from: userAddress })
 
                 txHash = receipt.transactionHash as string
@@ -314,7 +323,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
                 const receipt = await web3.eth.sendTransaction({
                     from: userAddress,
-                    to: '0x526823aaaAAc6B7448baa0912a53218c25762604',
+                    to: adminWalletAddress,
                     value: amountWei
                 })
 
@@ -360,7 +369,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                     amount: parseFloat(amountUSD) / (cryptoPrice || 1),
                     amountUSD: parseFloat(amountUSD),
                     txHash,
-                    address: selectedNetwork.address,
+                    address: adminWalletAddress,
                     requiredConfirmations: selectedNetwork.confirmations || 1,
                     fee: selectedNetwork.fee || "0",
                     method: 'custom_wallet',

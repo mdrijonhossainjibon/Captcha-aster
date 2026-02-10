@@ -2,7 +2,7 @@
 
 import { Bell, Search, Settings, User, Moon, Sun, Menu } from "lucide-react"
 import { useState, useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 // Page titles mapping
@@ -18,10 +18,12 @@ const pageTitles: Record<string, { title: string; description: string }> = {
     "/admin/database": { title: "Database", description: "Database management and monitoring" },
     "/admin/permissions": { title: "Permissions", description: "Manage user permissions" },
     "/admin/2fa": { title: "2FA Management", description: "Two-factor authentication settings" },
+    "/admin/settings": { title: "Settings", description: "General system settings and configuration" },
 }
 
 export function AdminHeader() {
     const pathname = usePathname()
+    const router = useRouter()
     const [isDark, setIsDark] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [notifications, setNotifications] = useState(3)
@@ -105,7 +107,10 @@ export function AdminHeader() {
                     </button>
 
                     {/* Settings */}
-                    <button className="p-2.5 rounded-xl hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all duration-300 hover:rotate-90 transform">
+                    <button
+                        onClick={() => router.push('/admin/settings')}
+                        className="p-2.5 rounded-xl hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all duration-300 hover:rotate-90 transform"
+                    >
                         <Settings className="w-5 h-5 transition-transform duration-300" />
                     </button>
 

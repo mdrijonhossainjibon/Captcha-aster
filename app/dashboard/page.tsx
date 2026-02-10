@@ -195,8 +195,8 @@ export default function DashboardPage() {
 
               <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
                 <div className="text-left md:text-right">
-                  <p className="text-2xl md:text-3xl font-bold text-foreground">$40.99</p>
-                  <p className="text-xs text-muted-foreground line-through">$47.99/month</p>
+                  <p className="text-2xl md:text-3xl font-bold text-foreground">$47.99</p>
+                  <p className="text-xs text-muted-foreground line-through">$55.58/month</p>
                 </div>
                 <Link href="/dashboard/pricing" className="w-full md:w-auto">
                   <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold transition-all hover:scale-105 shadow-lg flex items-center justify-center gap-2">

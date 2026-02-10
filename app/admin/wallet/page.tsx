@@ -1,42 +1,209 @@
 'use client'
 
-import { useState } from 'react'
-import { AdminLayout } from '@/components/admin-layout'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, Plus, Download } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, Plus, Settings, RefreshCcw, Trash2, Edit, Coins } from 'lucide-react'
+import { message, Modal, Input, Switch } from 'antd'
+import Image from 'next/image'
+
+interface AdminWallet {
+  _id?: string;
+  address: string;
+  network: string;
+  label: string;
+  symbol: string;
+  balance: string;
+  isActive: boolean;
+}
+
+interface CryptoConfig {
+  id: string;
+  name: string;
+  fullName: string;
+  networks: { id: string; name: string }[];
+}
 
 export default function AdminWalletPage() {
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [wallets, setWallets] = useState<AdminWallet[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showWalletModal, setShowWalletModal] = useState(false)
+  const [editingWallet, setEditingWallet] = useState<AdminWallet | null>(null)
+  const [cryptoConfigs, setCryptoConfigs] = useState<CryptoConfig[]>([])
+
+  // Simplified form states - just address and label
+  const [formAddress, setFormAddress] = useState('')
+  const [formLabel, setFormLabel] = useState('')
+  const [formIsActive, setFormIsActive] = useState(true)
+
+  const fetchCryptoConfigs = async () => {
+    try {
+      const response = await fetch('/api/crypto/config')
+      const data = await response.json()
+      if (data.success) {
+        setCryptoConfigs(data.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch crypto configs')
+    }
+  }
+
+  const fetchWallets = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/wallet')
+      const data = await response.json()
+      if (data.success) {
+        setWallets(data.wallets)
+      } else {
+        message.error(data.error || 'Failed to fetch wallets')
+      }
+    } catch (error) {
+      message.error('An error occurred while fetching wallets')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchWallets()
+    fetchCryptoConfigs()
+  }, [fetchWallets])
+
+  const handleSaveWallet = async () => {
+    if (!formAddress || !formLabel) {
+      message.warning('Please fill in address and label')
+      return
+    }
+
+    if (cryptoConfigs.length === 0) {
+      message.error('No crypto configurations available')
+      return
+    }
+
+    try {
+      // Create wallet entries for ALL coins in crypto config
+      const walletEntries = cryptoConfigs.map(config => ({
+        address: formAddress,
+        network: config.networks[0]?.id || 'ERC20',
+        label: `${formLabel} - ${config.name}`,
+        symbol: config.id.toUpperCase(),
+        balance: '0',
+        isActive: formIsActive
+      }))
+
+      // Save all entries
+      const promises = walletEntries.map(entry =>
+        fetch('/api/admin/wallet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry)
+        }).then(res => res.json())
+      )
+
+      const results = await Promise.all(promises)
+      const successCount = results.filter(r => r.success).length
+
+      if (successCount > 0) {
+        message.success(`Created ${successCount} wallet entries for all coins`)
+        setShowWalletModal(false)
+        setEditingWallet(null)
+        setFormAddress('')
+        setFormLabel('')
+        setFormIsActive(true)
+        fetchWallets()
+      } else {
+        message.error('Failed to create wallet entries')
+      }
+    } catch (error) {
+      message.error('Error saving wallets')
+    }
+  }
+
+  const handleDeleteWallet = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this wallet?')) return
+
+    try {
+      const response = await fetch(`/api/admin/wallet?id=${id}`, {
+        method: 'DELETE'
+      })
+      const data = await response.json()
+      if (data.success) {
+        message.success('Wallet deleted')
+        fetchWallets()
+      } else {
+        message.error(data.error || 'Failed to delete wallet')
+      }
+    } catch (error) {
+      message.error('Error deleting wallet')
+    }
+  }
+
+  const openEditModal = (wallet: AdminWallet) => {
+    setEditingWallet(wallet)
+    setFormAddress(wallet.address)
+    setFormLabel(wallet.label)
+    setFormIsActive(wallet.isActive)
+    setShowWalletModal(true)
+  }
+
+  const getCoinIcon = (symbol: string) => {
+    try {
+      const sym = symbol.toLowerCase()
+      return require(`../../../node_modules/cryptocurrency-icons/svg/color/${sym}.svg`)
+    } catch (e) {
+      return null
+    }
+  }
 
   const stats = [
-    { title: 'Total Balance', value: '$45,230.50', icon: Wallet, color: 'bg-blue-500/10', iconColor: 'text-blue-600', change: '+12.5%' },
+    {
+      title: 'Total Balance (USD)',
+      value: `$${wallets.reduce((acc, curr) => acc + parseFloat(curr.balance || '0'), 0).toLocaleString()}`,
+      icon: Wallet,
+      color: 'bg-blue-500/10',
+      iconColor: 'text-blue-600',
+      change: '+12.5%'
+    },
     { title: 'Monthly Income', value: '$12,450.00', icon: TrendingUp, color: 'bg-green-500/10', iconColor: 'text-green-600', change: '+8.2%' },
     { title: 'Pending Payouts', value: '$3,200.00', icon: ArrowUpRight, color: 'bg-yellow-500/10', iconColor: 'text-yellow-600', change: '2 pending' },
     { title: 'Total Withdrawn', value: '$89,350.00', icon: TrendingDown, color: 'bg-purple-500/10', iconColor: 'text-purple-600', change: 'All time' },
   ]
 
-  const transactions = [
-    { id: 'TXN001', type: 'income', description: 'Captcha service revenue', amount: '+$2,500.00', date: '2024-01-18', status: 'completed' },
-    { id: 'TXN002', type: 'withdrawal', description: 'Bank transfer', amount: '-$5,000.00', date: '2024-01-17', status: 'completed' },
-    { id: 'TXN003', type: 'income', description: 'API usage fees', amount: '+$850.50', date: '2024-01-16', status: 'completed' },
-    { id: 'TXN004', type: 'fee', description: 'Platform fee', amount: '-$50.00', date: '2024-01-15', status: 'completed' },
-    { id: 'TXN005', type: 'income', description: 'Affiliate commission', amount: '+$1,200.00', date: '2024-01-14', status: 'pending' },
-  ]
-
-  const withdrawalRequests = [
-    { id: 'WR001', amount: '$3,000.00', method: 'Bank Transfer', date: '2024-01-18', status: 'pending', bankAccount: '****1234' },
-    { id: 'WR002', amount: '$2,000.00', method: 'PayPal', date: '2024-01-16', status: 'processing', account: 'user@...com' },
-    { id: 'WR003', amount: '$5,000.00', method: 'Bank Transfer', date: '2024-01-10', status: 'completed', bankAccount: '****5678' },
-  ]
-
   return (
-    <AdminLayout>
+    <>
       <div className="p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Wallet Management</h1>
-          <p className="text-muted-foreground">Monitor platform finances and manage payouts</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Wallet Management</h1>
+            <p className="text-muted-foreground">Monitor platform finances and manage payouts</p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="gap-2 bg-transparent border-primary/20 hover:border-primary/50"
+              onClick={() => {
+                setEditingWallet(null)
+                setFormAddress('')
+                setFormLabel('')
+                setFormIsActive(true)
+                setShowWalletModal(true)
+              }}
+            >
+              <Plus className="w-4 h-4" />
+              Add Wallet
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 bg-transparent"
+              onClick={fetchWallets}
+              disabled={loading}
+            >
+              <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -66,116 +233,115 @@ export default function AdminWalletPage() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Transactions */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>Latest wallet activity</CardDescription>
-              </div>
-              <Button size="sm" variant="outline" className="gap-2 bg-transparent">
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {transactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${tx.type === 'income' ? 'bg-green-500/10' : tx.type === 'withdrawal' ? 'bg-blue-500/10' : 'bg-red-500/10'}`}>
-                        {tx.type === 'income' ? (
-                          <ArrowDownLeft className={`w-5 h-5 ${tx.type === 'income' ? 'text-green-600' : 'text-blue-600'}`} />
-                        ) : (
-                          <ArrowUpRight className={`w-5 h-5 text-${tx.type === 'withdrawal' ? 'blue' : 'red'}-600`} />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{tx.description}</p>
-                        <p className="text-sm text-muted-foreground">{tx.date}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>{tx.amount}</p>
-                      <span className="text-xs text-muted-foreground capitalize">{tx.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full gap-2 bg-primary hover:bg-primary/90" onClick={() => setShowWithdrawModal(true)}>
-                <ArrowUpRight className="w-4 h-4" />
-                Process Withdrawal
-              </Button>
-              <Button variant="outline" className="w-full gap-2 bg-transparent">
-                <Download className="w-4 h-4" />
-                Download Statement
-              </Button>
-              <Button variant="outline" className="w-full gap-2 bg-transparent">
-                <Plus className="w-4 h-4" />
-                Manual Adjustment
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Withdrawal Requests */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Pending Withdrawal Requests</CardTitle>
-            <CardDescription>Manage user withdrawal requests</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">ID</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Amount</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Method</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Account</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Date</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawalRequests.map((req) => (
-                    <tr key={req.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-                      <td className="py-3 px-4 text-foreground">{req.id}</td>
-                      <td className="py-3 px-4 font-semibold text-foreground">{req.amount}</td>
-                      <td className="py-3 px-4 text-foreground">{req.method}</td>
-                      <td className="py-3 px-4 text-muted-foreground text-sm">{req.bankAccount || req.account}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{req.date}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${req.status === 'completed' ? 'bg-green-500/20 text-green-700' : req.status === 'processing' ? 'bg-blue-500/20 text-blue-700' : 'bg-yellow-500/20 text-yellow-700'}`}>
-                          {req.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {req.status === 'pending' && (
-                          <Button size="sm" variant="outline" className="text-xs bg-transparent">
-                            Approve
+        {/* Wallets Configuration Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Settings className="w-5 h-5 text-primary" />
+              Admin Wallets
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading && wallets.length === 0 ? (
+              Array(3).fill(0).map((_, i) => (
+                <Card key={i} className="animate-pulse bg-secondary/20 h-[180px]" />
+              ))
+            ) : wallets.length === 0 ? (
+              <Card className="col-span-full p-12 text-center border-dashed border-2">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Wallet className="w-12 h-12 opacity-20" />
+                  <p>No admin wallets configured yet.</p>
+                  <Button variant="link" onClick={() => setShowWalletModal(true)}>Add your first wallet</Button>
+                </div>
+              </Card>
+            ) : (
+              wallets.map((wallet) => {
+                const coinIcon = getCoinIcon(wallet.symbol)
+                return (
+                  <Card key={wallet._id} className="group relative overflow-hidden border-primary/10 hover:border-primary/40 transition-all duration-300">
+                    <CardContent className="pt-6 pb-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+                            {coinIcon ? (
+                              <Image src={coinIcon} alt={wallet.symbol} width={28} height={28} />
+                            ) : (
+                              <Coins className="w-7 h-7 text-primary" />
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle className="text-base font-bold">{wallet.symbol}</CardTitle>
+                            <CardDescription className="text-xs">{wallet.label.replace(/ - .*$/, '')}</CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10" onClick={() => openEditModal(wallet)}>
+                            <Edit className="w-4 h-4" />
                           </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={() => handleDeleteWallet(wallet._id!)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Wallet Form Modal */}
+      <Modal
+        title={editingWallet ? 'Edit Admin Wallet' : 'Add Universal Wallet'}
+        open={showWalletModal}
+        onOk={handleSaveWallet}
+        onCancel={() => {
+          setShowWalletModal(false)
+          setEditingWallet(null)
+        }}
+        okText="Save Wallet"
+        cancelText="Cancel"
+        className="dark-modal"
+      >
+        <div className="space-y-4 pt-4">
+          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2">
+              <Coins className="w-4 h-4" />
+              This will create wallet entries for ALL {cryptoConfigs.length} configured coins
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1 block">Label Prefix</label>
+            <Input
+              placeholder="e.g. Main Payout Wallet"
+              value={formLabel}
+              onChange={(e) => setFormLabel(e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Will be saved as: Label - CoinName</p>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold uppercase text-muted-foreground mb-1 block">Universal Wallet Address</label>
+            <Input
+              placeholder="0x... or wallet address"
+              value={formAddress}
+              onChange={(e) => setFormAddress(e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Same address will be used for all coins</p>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-semibold">Active Status</label>
+            <Switch
+              checked={formIsActive}
+              onChange={(checked) => setFormIsActive(checked)}
+            />
+          </div>
+        </div>
+      </Modal>
 
       <style>{`
         @keyframes slideInUp {
@@ -188,7 +354,33 @@ export default function AdminWalletPage() {
             transform: translateY(0);
           }
         }
+        
+        .dark-modal .ant-modal-content {
+          background-color: hsl(var(--card));
+          color: hsl(var(--foreground));
+          border: 1px solid hsl(var(--border));
+        }
+        .dark-modal .ant-modal-header {
+          background-color: transparent;
+          border-bottom: 1px solid hsl(var(--border));
+        }
+        .dark-modal .ant-modal-title {
+          color: hsl(var(--foreground));
+        }
+        .dark-modal .ant-modal-close {
+          color: hsl(var(--muted-foreground));
+        }
+        .dark-modal .ant-input, .dark-modal .ant-select-selector {
+          background-color: hsl(var(--secondary) / 0.5) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
+        .dark-modal .ant-modal-footer .ant-btn-default {
+          background: transparent;
+          color: hsl(var(--foreground));
+          border-color: hsl(var(--border));
+        }
       `}</style>
-    </AdminLayout>
+    </>
   )
 }
