@@ -131,7 +131,7 @@ export function DashboardProfileContent() {
 
   return (
 
-    <div className="p-8 lg:ml-20">
+    <div className="p-8 ">
       {/* Header */}
       <div
         className="mb-8"

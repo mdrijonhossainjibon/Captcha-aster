@@ -80,10 +80,10 @@ export async function GET() {
                 used: statsUsed,
                 total: statsTotal,
                 percentage: Math.round(percentage * 10) / 10,
-                resetsIn,
+                resetsIn : activePackage ? resetsIn : null,
                 totalRequests: statsUsed,
                 requestsLeft : activePackage ?   activePackage.credits - activePackage.creditsUsed : 0,
-                type: activePackage?.type || 'daily'
+                type: activePackage ?  activePackage?.type  : null
             },
             package: activePackage
                 ? {

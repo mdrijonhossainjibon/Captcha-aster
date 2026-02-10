@@ -42,10 +42,7 @@ const accountNavItems = [
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ]
 
-const resourceNavItems = [
-  { href: "/extension", label: "Extension", icon: Download },
-  { href: "/how-it-works", label: "How It Works", icon: HelpCircle },
-]
+ 
 
 interface DashboardSidebarProps {
   isMobileMenuOpen?: boolean
@@ -205,7 +202,7 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
       <nav className="flex-1 overflow-y-auto p-3 space-y-6">
         <NavSection title="Main" items={mainNavItems} startIndex={0} />
         <NavSection title="Account" items={accountNavItems} startIndex={4} />
-        <NavSection title="Resources" items={resourceNavItems} startIndex={7} />
+ 
       </nav>
 
       {/* Referral Card */}

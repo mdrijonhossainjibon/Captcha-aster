@@ -27,8 +27,8 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
   const isAdmin = session?.user?.role === "admin"
 
   const extensions = [
-    { label: "Chrome Extension", href: "/extensions/chrome", icon: Download, description: "Browser extension for Chrome" },
-    { label: "Firefox Add-on", href: "/extensions/firefox", icon: Download, description: "Browser extension for Firefox" },
+    { label: "Chrome Extension", href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-chrome.zip", icon: Download, description: "Browser extension for Chrome" },
+    { label: "Firefox Add-on", href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-firefox.zip", icon: Download, description: "Browser extension for Firefox" },
   ]
 
   const fetchBalance = async () => {
