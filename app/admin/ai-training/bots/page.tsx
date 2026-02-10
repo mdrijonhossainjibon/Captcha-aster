@@ -118,7 +118,6 @@ export default function KolotiCachePage() {
     // Helper to format date with +6 hours offset for BD time
     const formatBDDate = (dateStr: string | undefined, type: 'distance' | 'full' = 'distance') => {
         if (!dateStr) return type === 'distance' ? 'Never' : '-';
-
         try {
             // Try parsing directly
             let d = new Date(dateStr);
