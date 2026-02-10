@@ -326,10 +326,20 @@ export default function KolotiCachePage() {
                                                 <div className="flex flex-col">
                                                     <span className="text-foreground flex items-center gap-1.5">
                                                         <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                                        {formatDistanceToNow(new Date(record.createdAt), { addSuffix: true })}
+                                                        {(() => {
+                                                            const d = new Date(record.createdAt);
+                                                            // If the string doesn't have T or Z, it's often a raw SQL timestamp which needs T and Z
+                                                            const dateStr = record.createdAt.includes('T') ? record.createdAt : record.createdAt.replace(' ', 'T') + 'Z';
+                                                            const utcDate = new Date(dateStr);
+                                                            return formatDistanceToNow(isNaN(utcDate.getTime()) ? d : utcDate, { addSuffix: true });
+                                                        })()}
                                                     </span>
                                                     <span className="text-[10px] opacity-50">
-                                                        {new Date(record.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}
+                                                        {(() => {
+                                                            const d = new Date(record.createdAt);
+                                                            const utcDate = isNaN(d.getTime()) ? new Date(record.createdAt + 'Z') : d;
+                                                            return utcDate.toLocaleString();
+                                                        })()}
                                                     </span>
                                                 </div>
                                             </td>
@@ -512,9 +522,19 @@ export default function KolotiCachePage() {
                         <div>
                             <label className="text-sm font-semibold text-foreground mb-2 block">Created At</label>
                             <div className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border text-foreground flex items-center justify-between">
-                                <span>{new Date(selectedRecord.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}</span>
+                                <span>
+                                    {(() => {
+                                        const d = new Date(selectedRecord.createdAt);
+                                        const utcDate = isNaN(d.getTime()) ? new Date(selectedRecord.createdAt + 'Z') : d;
+                                        return utcDate.toLocaleString();
+                                    })()}
+                                </span>
                                 <span className="text-sm text-muted-foreground font-medium bg-secondary px-2.5 py-1 rounded-lg">
-                                    {formatDistanceToNow(new Date(selectedRecord.createdAt), { addSuffix: true })}
+                                    {(() => {
+                                        const d = new Date(selectedRecord.createdAt);
+                                        const utcDate = isNaN(d.getTime()) || !selectedRecord.createdAt.includes('T') ? new Date(selectedRecord.createdAt.replace(' ', 'T') + 'Z') : d;
+                                        return formatDistanceToNow(utcDate, { addSuffix: true });
+                                    })()}
                                 </span>
                             </div>
                         </div>
