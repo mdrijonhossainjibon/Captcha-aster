@@ -4,10 +4,12 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Mail, ArrowRight, ArrowLeft, CheckCircle2, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { notification } from "antd"
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("")
@@ -44,17 +46,28 @@ export function ForgotPasswordForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Failed to send reset email')
+        notification.error({
+          message: 'Reset Failed',
+          description: data.error || 'Failed to send reset email.',
+        })
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'Email Sent',
+        description: 'Password reset email sent! Please check your inbox.',
+      })
 
       console.log('✅ Password reset email sent')
       setIsSubmitted(true)
       setCountdown(60)
     } catch (error) {
       console.error('Forgot password error:', error)
-      alert('An error occurred. Please try again.')
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred. Please try again.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -76,16 +89,27 @@ export function ForgotPasswordForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Failed to resend email')
+        notification.error({
+          message: 'Resend Failed',
+          description: data.error || 'Failed to resend email.',
+        })
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'Email Resent',
+        description: 'Password reset email resent! Please check your inbox.',
+      })
 
       console.log('✅ Password reset email resent')
       setCountdown(60)
     } catch (error) {
       console.error('Resend error:', error)
-      alert('An error occurred. Please try again.')
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred. Please try again.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -117,8 +141,14 @@ export function ForgotPasswordForm() {
             {/* Logo Section */}
             <div className="flex flex-col items-center mb-8 relative z-10">
               <div className="relative mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse-glow">
-                  <KeyRound className="w-8 h-8 text-primary-foreground" />
+                <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center animate-pulse-glow shadow-lg border border-border/50 overflow-hidden">
+                  <Image
+                    src="/logo.png"
+                    alt="Captcha Master Logo"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain p-2"
+                  />
                 </div>
                 {/* Floating particles */}
                 <div

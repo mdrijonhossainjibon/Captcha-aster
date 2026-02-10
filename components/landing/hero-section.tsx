@@ -70,7 +70,7 @@ export function HeroSection() {
 
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-              <Link href="/extension" className="w-full sm:w-auto">
+              <Link href="/auth/login" className="w-full sm:w-auto">
                 <Button size="lg" className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg font-semibold gap-2 bg-primary hover:bg-primary/90">
                   Get Started Free
                   <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />

@@ -5,7 +5,7 @@ import { FeaturesSection } from "@/components/landing/features-section"
 import { StatsSection } from "@/components/landing/stats-section"
 import { HowItWorks } from "@/components/landing/how-it-works"
 import { SupportedCaptchas } from "@/components/landing/supported-captchas"
-import { CTASection } from "@/components/landing/cta-section"
+ 
 import { Footer } from "@/components/landing/footer"
 
 export default function LandingPage() {
@@ -19,7 +19,7 @@ export default function LandingPage() {
         <StatsSection />
         <HowItWorks />
         <SupportedCaptchas />
-        <CTASection />
+ 
       </main>
       <Footer />
     </div>

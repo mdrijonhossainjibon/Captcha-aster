@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Web3 from "web3"
+import { notification } from "antd"
 
 interface MetaMaskDepositProps {
     onSuccess?: (txHash: string) => void
@@ -126,7 +127,10 @@ export function MetaMaskDeposit({ onSuccess, onError }: MetaMaskDepositProps) {
 
     const connectWallet = async () => {
         if (!web3) {
-            alert("Please install MetaMask!")
+            notification.error({
+                message: 'MetaMask Not Found',
+                description: 'Please install MetaMask to continue with the deposit.',
+            })
             window.open("https://metamask.io/download/", "_blank")
             return
         }
@@ -134,7 +138,7 @@ export function MetaMaskDeposit({ onSuccess, onError }: MetaMaskDepositProps) {
         setIsConnecting(true)
 
         try {
-            const accounts = await window.ethereum.request({
+            const accounts = await (window.ethereum as any).request({
                 method: "eth_requestAccounts",
             })
 
@@ -185,10 +189,15 @@ export function MetaMaskDeposit({ onSuccess, onError }: MetaMaskDepositProps) {
                 value: amountWei,
             })
 
-            setTxHash(tx.transactionHash)
+            const hash = tx.transactionHash.toString()
+            setTxHash(hash)
+            notification.success({
+                message: 'Deposit Successful',
+                description: 'Your deposit has been processed! Transaction hash: ' + hash.substring(0, 10) + '...',
+            })
 
             if (onSuccess) {
-                onSuccess(tx.transactionHash)
+                onSuccess(hash)
             }
 
             // Update balance after deposit
@@ -196,7 +205,7 @@ export function MetaMaskDeposit({ onSuccess, onError }: MetaMaskDepositProps) {
             setDepositAmount("")
 
             // You can also call your backend API here to record the deposit
-            await recordDeposit(tx.transactionHash, depositAmount, account)
+            await recordDeposit(hash, depositAmount, account)
 
         } catch (error: any) {
             console.error("Error sending transaction:", error)
@@ -237,6 +246,10 @@ export function MetaMaskDeposit({ onSuccess, onError }: MetaMaskDepositProps) {
     const copyAddress = (address: string) => {
         navigator.clipboard.writeText(address)
         setCopied(true)
+        notification.success({
+            message: 'Address Copied',
+            description: 'The wallet address has been copied to your clipboard.',
+        })
         setTimeout(() => setCopied(false), 2000)
     }
 

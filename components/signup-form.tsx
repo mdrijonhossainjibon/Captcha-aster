@@ -4,6 +4,7 @@ import type React from 'react'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, User, Check, CheckCircle2, Clock } from 'lucide-react'
@@ -11,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { notification } from 'antd'
+
 
 type SignupStep = 'credentials' | 'otp' | 'success'
 
@@ -63,7 +66,10 @@ export function SignupForm() {
   const handleSubmitCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirmPassword) {
-      alert('Passwords do not match')
+      notification.error({
+        message: 'Passwords do not match',
+        description: 'Please ensure your passwords are identical.',
+      })
       return
     }
 
@@ -81,10 +87,18 @@ export function SignupForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Registration failed')
+        notification.error({
+          message: 'Registration Failed',
+          description: data.error || 'Something went wrong during registration.',
+        })
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'Account created!',
+        description: 'Please verify your email to continue.',
+      })
 
       console.log('✅ Account created, OTP sent to:', email)
       setTwoFaEnabled(true)
@@ -93,7 +107,10 @@ export function SignupForm() {
       setResendDisabled(true)
     } catch (error) {
       console.error('Registration error:', error)
-      alert('An error occurred during registration. Please try again.')
+      notification.error({
+        message: 'Connection Error',
+        description: 'An error occurred during registration. Please try again.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -137,10 +154,18 @@ export function SignupForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Invalid OTP')
+        notification.error({
+          message: 'Invalid OTP',
+          description: data.error || 'The code you entered is incorrect.',
+        })
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'Email Verified',
+        description: 'Your email has been verified successfully!',
+      })
 
       // Store token and user data
       localStorage.setItem('authToken', data.token)
@@ -155,7 +180,10 @@ export function SignupForm() {
       }, 2000)
     } catch (error) {
       console.error('Email verification error:', error)
-      alert('An error occurred during verification. Please try again.')
+      notification.error({
+        message: 'Verification Error',
+        description: 'An error occurred during verification. Please try again.',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -177,18 +205,29 @@ export function SignupForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Failed to resend verification code')
+        notification.error({
+          message: 'Resend Failed',
+          description: data.error || 'Failed to resend verification code.',
+        })
         setResendDisabled(false)
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'Code Resent',
+        description: 'A new verification code has been sent to your email.',
+      })
 
       console.log('✅ Verification code resent')
       setOtp(['', '', '', '', '', ''])
       setTimer(300)
     } catch (error) {
       console.error('Resend verification error:', error)
-      alert('An error occurred. Please try again.')
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred. Please try again.',
+      })
       setResendDisabled(false)
     } finally {
       setIsLoading(false)
@@ -210,12 +249,18 @@ export function SignupForm() {
       })
 
       if (result?.error) {
-        alert('Google signup failed. Please try again.')
+        notification.error({
+          message: 'Google Signup Failed',
+          description: 'Could not connect to Google. Please try again.',
+        })
         setIsLoading(false)
       }
     } catch (error) {
       console.error('Google signup error:', error)
-      alert('An error occurred during Google signup. Please try again.')
+      notification.error({
+        message: 'External Auth Error',
+        description: 'An error occurred during Google signup. Please try again.',
+      })
       setIsLoading(false)
     }
   }
@@ -238,11 +283,17 @@ export function SignupForm() {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8 relative z-10">
           <div className="relative mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse-glow">
+            <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center animate-pulse-glow shadow-lg border border-border/50 overflow-hidden">
               {step === 'success' ? (
-                <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+                <CheckCircle2 className="w-10 h-10 text-green-500" />
               ) : (
-                <Sparkles className="w-8 h-8 text-primary-foreground" />
+                <Image
+                  src="/logo.png"
+                  alt="Captcha Master Logo"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-contain p-2"
+                />
               )}
             </div>
             {/* Floating particles */}

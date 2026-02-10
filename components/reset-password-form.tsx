@@ -5,10 +5,12 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle2, KeyRound, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { notification } from "antd"
 
 type ResetStep = 'loading' | 'form' | 'success' | 'error'
 
@@ -66,14 +68,19 @@ export function ResetPasswordForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // Validate passwords
         if (password.length < 6) {
-            alert('Password must be at least 6 characters')
+            notification.error({
+                message: 'Password Too Short',
+                description: 'Password must be at least 6 characters.',
+            })
             return
         }
 
         if (password !== confirmPassword) {
-            alert('Passwords do not match')
+            notification.error({
+                message: 'Passwords do not match',
+                description: 'Please ensure your passwords are identical.',
+            })
             return
         }
 
@@ -91,10 +98,18 @@ export function ResetPasswordForm() {
             const data = await response.json()
 
             if (!response.ok) {
-                alert(data.error || 'Failed to reset password')
+                notification.error({
+                    message: 'Reset Failed',
+                    description: data.error || 'Failed to reset password.',
+                })
                 setIsLoading(false)
                 return
             }
+
+            notification.success({
+                message: 'Password Reset',
+                description: 'Your password has been successfully reset! Redirecting...',
+            })
 
             console.log('✅ Password reset successful')
             setStep('success')
@@ -105,7 +120,10 @@ export function ResetPasswordForm() {
             }, 3000)
         } catch (error) {
             console.error('Reset password error:', error)
-            alert('An error occurred. Please try again.')
+            notification.error({
+                message: 'Error',
+                description: 'An error occurred. Please try again.',
+            })
         } finally {
             setIsLoading(false)
         }
@@ -163,8 +181,14 @@ export function ResetPasswordForm() {
                         {/* Logo Section */}
                         <div className="flex flex-col items-center mb-8 relative z-10">
                             <div className="relative mb-4">
-                                <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse-glow">
-                                    <KeyRound className="w-8 h-8 text-primary-foreground" />
+                                <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center animate-pulse-glow shadow-lg border border-border/50 overflow-hidden">
+                                    <Image
+                                        src="/logo.png"
+                                        alt="Captcha Master Logo"
+                                        width={80}
+                                        height={80}
+                                        className="w-full h-full object-contain p-2"
+                                    />
                                 </div>
                                 {/* Floating particles */}
                                 <div

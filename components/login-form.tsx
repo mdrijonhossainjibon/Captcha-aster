@@ -4,11 +4,13 @@ import type React from 'react'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, CheckCircle2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { notification } from 'antd'
 
 import { signIn } from 'next-auth/react'
 
@@ -159,18 +161,29 @@ export function LoginForm() {
       const data = await response.json()
 
       if (!response.ok) {
-        alert(data.error || 'Failed to resend OTP')
+        notification.error({
+          message: 'Resend Failed',
+          description: data.error || 'Failed to resend OTP code.',
+        })
         setResendDisabled(false)
         setIsLoading(false)
         return
       }
+
+      notification.success({
+        message: 'OTP Resent',
+        description: 'A new verification code has been sent to your email.',
+      })
 
       console.log('✅ OTP resent successfully')
       setOtp(['', '', '', '', '', ''])
       setTimer(300)
     } catch (error) {
       console.error('Resend OTP error:', error)
-      alert('An error occurred while resending OTP. Please try again.')
+      notification.error({
+        message: 'Error',
+        description: 'An error occurred while resending OTP. Please try again.',
+      })
       setResendDisabled(false)
     } finally {
       setIsLoading(false)
@@ -198,11 +211,17 @@ export function LoginForm() {
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8 relative z-10">
           <div className="relative mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center animate-pulse-glow">
+            <div className="w-20 h-20 rounded-2xl bg-background flex items-center justify-center animate-pulse-glow shadow-lg border border-border/50 overflow-hidden">
               {step === 'success' ? (
-                <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+                <CheckCircle2 className="w-10 h-10 text-green-500" />
               ) : (
-                <Sparkles className="w-8 h-8 text-primary-foreground" />
+                <Image
+                  src="/logo.png"
+                  alt="Captcha Master Logo"
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-contain p-2"
+                />
               )}
             </div>
             {/* Floating particles */}
