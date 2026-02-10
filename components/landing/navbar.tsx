@@ -38,7 +38,7 @@ const navLinks = [
 
 const extensionLinks = [
   {
-    href: "/extension/firefox",
+    href: "https://github.com/rk643264321/Captcha-aster-Extension/blob/main/captchamaster-1.0.1-firefox.zip",
     label: "Firefox Extension",
     icon: (className: string) => (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,7 +49,7 @@ const extensionLinks = [
     )
   },
   {
-    href: "/extension/chrome",
+    href: "https://github.com/rk643264321/Captcha-aster-Extension/blob/main/captchamaster-1.0.1-chrome.zip",
     label: "Chrome Extension",
     icon: (className: string) => <Chrome className={className} />
   },
