@@ -101,8 +101,8 @@ export async function GET() {
                 }
                 : null,
         })
-    } catch (error) {
+    } catch (error :any ) {
         console.error('Dashboard stats error:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
