@@ -30,7 +30,7 @@ function* generateKeySaga(action: any): Generator {
         const { response, status }: APIResponse = yield (call as any)(API_CALL, {
             method: 'POST',
             url: '/dashboard/api-keys',
-            data: { name: action.payload.name }
+            body : { name: action.payload.name }
         });
 
         if (status === 200) {
@@ -49,7 +49,7 @@ function* deleteKeySaga(action: any): Generator {
         const { response, status }: APIResponse = yield (call as any)(API_CALL, {
             method: 'DELETE',
             url: '/dashboard/api-keys',
-            data: { id: action.payload.id }
+            body : { id: action.payload.id }
         });
 
         if (status === 200) {
@@ -65,29 +65,18 @@ function* deleteKeySaga(action: any): Generator {
 
 function* regenerateKeySaga(action: any): Generator {
     try {
-        // 1. Delete old key
-        const delRes: APIResponse = yield (call as any)(API_CALL, {
-            method: 'DELETE',
-            url: '/dashboard/api-keys',
-            data: { id: action.payload.id }
+        // Use the dedicated PUT endpoint for regeneration
+        const { response, status }: APIResponse = yield (call)(API_CALL, {
+            method: 'PUT',
+            url: `/dashboard/api-keys/${action.payload.id}`,
+            
         });
 
-        if (delRes.status !== 200) {
-            throw new Error(delRes.response?.error || 'Failed to delete old key');
-        }
-
-        // 2. Create new key
-        const createRes: APIResponse = yield (call as any)(API_CALL, {
-            method: 'POST',
-            url: '/dashboard/api-keys',
-            data: { name: action.payload.name }
-        });
-
-        if (createRes.status === 200) {
+        if (status === 200) {
             yield put(actions.regenerateKeySuccess());
             yield put(actions.fetchDashboardDataRequest());
         } else {
-            yield put(actions.regenerateKeyFailure(createRes.response?.error || 'Failed to create new key'));
+            yield put(actions.regenerateKeyFailure(response?.error || 'Failed to regenerate key'));
         }
     } catch (error: any) {
         yield put(actions.regenerateKeyFailure(error.message || 'An error occurred'));

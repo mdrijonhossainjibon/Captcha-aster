@@ -1,33 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import ApiKey from '@/lib/models/ApiKey'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { requireAuth } from '@/lib/auth'
 
 // Regenerate API key
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectDB()
 
-        // Get token from Authorization header
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const { id: keyId } = await params
+
+        // Get authenticated user from session
+        const authUser = await requireAuth()
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const token = authHeader.substring(7)
-
-        // Verify token
-        let decoded: any
-        try {
-            decoded = jwt.verify(token, JWT_SECRET)
-        } catch (error) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
-        }
-
-        const userId = decoded.userId
-        const keyId = params.id
+        const userId = authUser.userId
 
         // Find the API key
         const apiKey = await ApiKey.findOne({ _id: keyId, userId })
@@ -62,31 +51,74 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-// Delete API key
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+// Update API key metadata (e.g., name)
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         await connectDB()
 
-        // Get token from Authorization header
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const { id: keyId } = await params
+
+        // Get authenticated user from session
+        const authUser = await requireAuth()
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
-        const token = authHeader.substring(7)
+        const userId = authUser.userId
 
-        // Verify token
-        let decoded: any
+        let name, status
         try {
-            decoded = jwt.verify(token, JWT_SECRET)
-        } catch (error) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+            const body = await request.json()
+            name = body.name
+            status = body.status
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid request payload' }, { status: 400 })
         }
 
-        const userId = decoded.userId
-        const keyId = params.id
+        // Find the API key
+        const apiKey = await ApiKey.findOne({ _id: keyId, userId })
+        if (!apiKey) {
+            return NextResponse.json({ error: 'API key not found' }, { status: 404 })
+        }
 
-        // Find and delete the API key
+        // Update allowed fields
+        if (name !== undefined) apiKey.name = name
+        if (status !== undefined) apiKey.status = status
+
+        await apiKey.save()
+
+        return NextResponse.json({
+            success: true,
+            message: 'API key updated successfully',
+            apiKey: {
+                id: apiKey._id,
+                name: apiKey.name,
+                status: apiKey.status,
+                lastUsed: apiKey.lastUsed,
+            },
+        })
+    } catch (error) {
+        console.error('Update API key error:', error)
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+}
+
+// Delete API key
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        await connectDB()
+
+        const { id: keyId } = await params
+
+        // Get authenticated user from session
+        const authUser = await requireAuth()
+        if (!authUser) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        const userId = authUser.userId
+
+        // Find and delete the API key (revoke status)
         const apiKey = await ApiKey.findOneAndUpdate(
             { _id: keyId, userId },
             { status: 'revoked' },
@@ -99,7 +131,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
         return NextResponse.json({
             success: true,
-            message: 'API key deleted successfully',
+            message: 'API key revoked successfully',
         })
     } catch (error) {
         console.error('Delete API key error:', error)

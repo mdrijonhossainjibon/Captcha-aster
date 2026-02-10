@@ -79,7 +79,9 @@ export async function POST(request: NextRequest) {
         }
 
         const userId = authUser.userId
+
         const { name } = await request.json()
+
 
         if (!name) {
             return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -145,7 +147,18 @@ export async function DELETE(request: NextRequest) {
         }
 
         const userId = authUser.userId
-        const { id } = await request.json()
+
+        // Get ID from body or search params
+        let id = null
+        try {
+            // Check if there is a body to parse
+            const body = await request.json()
+            id = body.id
+        } catch (e) {
+            // Fallback to search params if body is empty or invalid
+            const { searchParams } = new URL(request.url)
+            id = searchParams.get('id')
+        }
 
         if (!id) {
             return NextResponse.json({ error: 'Key ID is required' }, { status: 400 })

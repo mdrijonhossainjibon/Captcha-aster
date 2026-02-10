@@ -15,7 +15,14 @@ export async function PATCH(request: NextRequest) {
         }
 
         const userId = authUser.userId
-        const { autoRenew } = await request.json()
+
+        let autoRenew
+        try {
+            const body = await request.json()
+            autoRenew = body.autoRenew
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid request payload' }, { status: 400 })
+        }
 
         if (typeof autoRenew !== 'boolean') {
             return NextResponse.json({ error: 'autoRenew must be a boolean' }, { status: 400 })

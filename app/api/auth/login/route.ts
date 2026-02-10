@@ -11,7 +11,14 @@ export async function POST(request: NextRequest) {
     try {
         await connectDB()
 
-        const { email, password } = await request.json()
+        let email, password
+        try {
+            const body = await request.json()
+            email = body.email
+            password = body.password
+        } catch (e) {
+            return NextResponse.json({ error: 'Invalid request payload' }, { status: 400 })
+        }
 
         // Validate input
         if (!email || !password) {
