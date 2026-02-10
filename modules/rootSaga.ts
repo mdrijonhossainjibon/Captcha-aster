@@ -5,6 +5,7 @@ import dashboardSaga from './dashboard/saga';
 import aiTrainingSaga from './ai-training/saga';
 import authSaga from './auth/saga';
 import settingsSaga from './settings/saga';
+import cryptoSaga from './crypto/saga';
 
 export default function* rootSaga(): Generator {
     yield all([
@@ -13,6 +14,7 @@ export default function* rootSaga(): Generator {
         aiTrainingSaga(),
         authSaga(),
         settingsSaga(),
+        cryptoSaga(),
     ]);
 }
 

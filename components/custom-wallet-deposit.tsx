@@ -5,20 +5,19 @@ import { useDispatch, useSelector } from "react-redux"
 import {
     Wallet,
     CheckCircle2,
-    AlertTriangle,
     Shield,
     Sparkles,
     Loader2,
-    Copy,
     TrendingUp,
     Zap
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Select, notification, QRCode } from "antd"
+import { Select, notification } from "antd"
 import Image from "next/image"
 import Web3 from 'web3'
 import { RootState } from "@/modules/rootReducer"
 import { fetchSettingsRequest } from "@/modules/settings/actions"
+import * as cryptoActions from "@/modules/crypto/actions"
 
 // ERC20 ABI for token transfers
 const ERC20_ABI = [
@@ -93,6 +92,8 @@ const CHAIN_IDS: Record<string, number> = {
 export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositProps) {
     const dispatch = useDispatch()
     const { data: settings } = useSelector((state: RootState) => state.settings)
+    const { configs: cryptoOptions, prices, loading: isLoadingConfigs } = useSelector((state: RootState) => state.crypto)
+
     const adminWalletAddress = settings.mainWalletAddress || '0x526823aaaAAc6B7448baa0912a53218c25762604';
 
     const [web3, setWeb3] = useState<Web3 | null>(null)
@@ -100,14 +101,12 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
     const [isConnected, setIsConnected] = useState(false)
     const [currentChainId, setCurrentChainId] = useState<number | null>(null)
 
-    const [cryptoOptions, setCryptoOptions] = useState<CryptoOption[]>([])
     const [selectedCrypto, setSelectedCrypto] = useState<CryptoOption | null>(null)
     const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null)
     const [depositAmount, setDepositAmount] = useState<string>("")
-    const [cryptoPrice, setCryptoPrice] = useState<number | null>(null)
-    const [isLoadingPrice, setIsLoadingPrice] = useState(false)
-    const [isLoadingConfigs, setIsLoadingConfigs] = useState(true)
     const [isSending, setIsSending] = useState(false)
+
+    const cryptoPrice = selectedCrypto ? prices[selectedCrypto.id] : null
 
     // Check if MetaMask is installed
     const isMetaMaskInstalled = () => {
@@ -188,64 +187,31 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
     // Fetch crypto price
     useEffect(() => {
-        const fetchPrice = async () => {
-            if (!selectedCrypto) return
+        if (!selectedCrypto) return
 
-            if (['usdt', 'usdc'].includes(selectedCrypto.id.toLowerCase())) {
-                setCryptoPrice(1.0)
-                return
-            }
-
-            setIsLoadingPrice(true)
-            try {
-                const geckoMap: Record<string, string> = {
-                    'eth': 'ethereum',
-                    'bnb': 'binancecoin',
-                    'matic': 'matic-network',
-                    'btc': 'bitcoin',
-                    'sol': 'solana',
-                    'arb': 'arbitrum'
-                }
-                const geckoId = geckoMap[selectedCrypto.id.toLowerCase()] || selectedCrypto.id.toLowerCase()
-
-                const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${geckoId}&vs_currencies=usd`)
-                const data = await response.json()
-                if (data[geckoId]) {
-                    setCryptoPrice(data[geckoId].usd)
-                }
-            } catch (err) {
-                console.error("Failed to fetch price", err)
-            } finally {
-                setIsLoadingPrice(false)
-            }
+        const fetchPrice = () => {
+            dispatch(cryptoActions.fetchCryptoPriceRequest(selectedCrypto.id))
         }
+
         fetchPrice()
         const interval = setInterval(fetchPrice, 60000)
         return () => clearInterval(interval)
-    }, [selectedCrypto])
+    }, [selectedCrypto, dispatch])
 
-    // Fetch crypto configurations
+    // Fetch configurations
     useEffect(() => {
         dispatch(fetchSettingsRequest())
+        dispatch(cryptoActions.fetchCryptoConfigRequest())
+    }, [dispatch])
 
-        const fetchConfigs = async () => {
-            try {
-                const response = await fetch('/api/crypto/config')
-                const data = await response.json()
-                if (data.success) {
-                    setCryptoOptions(data.data)
-                    const defaultCrypto = data.data[0]
-                    setSelectedCrypto(defaultCrypto)
-                    setSelectedNetwork(defaultCrypto.networks[0])
-                }
-            } catch (err) {
-                console.error("Failed to fetch configs", err)
-            } finally {
-                setIsLoadingConfigs(false)
-            }
+    // Set default selection when configs load
+    useEffect(() => {
+        if (cryptoOptions.length > 0 && !selectedCrypto) {
+            const defaultCrypto = cryptoOptions[0]
+            setSelectedCrypto(defaultCrypto)
+            setSelectedNetwork(defaultCrypto.networks[0])
         }
-        fetchConfigs()
-    }, [])
+    }, [cryptoOptions, selectedCrypto])
 
     // Listen for account changes
     useEffect(() => {
@@ -308,26 +274,26 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                 // Token transfer (USDT, USDC, etc.)
                 const isBsc = currentChainId === 56
                 const decimals = isBsc ? 18 : (selectedCrypto.id === 'usdt' || selectedCrypto.id === 'usdc' ? 6 : 18)
-                const amount = BigInt(depositAmount) * BigInt(10 ** decimals)
+                const amount = BigInt(depositAmount) * BigInt(Math.pow(10, decimals))
 
                 const contract = new web3.eth.Contract(ERC20_ABI as any, selectedNetwork.tokenAddress)
-                const receipt = await contract.methods
+                const receipt: any = await contract.methods
                     .transfer(adminWalletAddress, amount.toString())
                     .send({ from: userAddress })
 
-                txHash = receipt.transactionHash as string
+                txHash = receipt.transactionHash
             } else {
                 // Native transfer (ETH, BNB, etc.)
                 const sendAmount = cryptoPrice ? (parseFloat(depositAmount) / cryptoPrice).toFixed(8) : "0"
                 const amountWei = web3.utils.toWei(sendAmount, 'ether')
 
-                const receipt = await web3.eth.sendTransaction({
+                const receipt: any = await web3.eth.sendTransaction({
                     from: userAddress,
                     to: adminWalletAddress,
                     value: amountWei
                 })
 
-                txHash = receipt.transactionHash as string
+                txHash = receipt.transactionHash
             }
 
             notification.success({
@@ -337,7 +303,24 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
             })
 
             if (onSuccess) onSuccess(txHash)
-            await recordDeposit(txHash, depositAmount, userAddress)
+
+            // Record deposit via Redux
+            dispatch(cryptoActions.recordDepositRequest({
+                cryptoId: selectedCrypto.id,
+                cryptoName: selectedCrypto.name,
+                networkId: selectedNetwork.id,
+                networkName: selectedNetwork.name,
+                amount: parseFloat(depositAmount) / (cryptoPrice || 1),
+                amountUSD: parseFloat(depositAmount),
+                txHash,
+                address: adminWalletAddress,
+                requiredConfirmations: selectedNetwork.confirmations || 1,
+                fee: selectedNetwork.fee || "0",
+                method: 'custom_wallet',
+                fromAddress: userAddress,
+                chainId: currentChainId?.toString() || '',
+            }))
+
             setDepositAmount("")
 
         } catch (error: any) {
@@ -353,36 +336,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
         }
     }
 
-    // Record deposit
-    const recordDeposit = async (txHash: string, amountUSD: string, fromAddress: string) => {
-        if (!selectedCrypto || !selectedNetwork) return
-
-        try {
-            await fetch("/api/crypto/deposits", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    cryptoId: selectedCrypto.id,
-                    cryptoName: selectedCrypto.name,
-                    networkId: selectedNetwork.id,
-                    networkName: selectedNetwork.name,
-                    amount: parseFloat(amountUSD) / (cryptoPrice || 1),
-                    amountUSD: parseFloat(amountUSD),
-                    txHash,
-                    address: adminWalletAddress,
-                    requiredConfirmations: selectedNetwork.confirmations || 1,
-                    fee: selectedNetwork.fee || "0",
-                    method: 'custom_wallet',
-                    fromAddress,
-                    chainId: currentChainId?.toString() || '',
-                }),
-            })
-        } catch (error) {
-            console.error("Error recording deposit:", error)
-        }
-    }
-
-    if (isLoadingConfigs) {
+    if (isLoadingConfigs && cryptoOptions.length === 0) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin text-cyan-500" /></div>
     }
 
@@ -413,9 +367,6 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                         Connect Wallet
                         <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
                     </Button>
-
-
-
 
                     {/* Security Notice */}
                     <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
@@ -477,7 +428,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                         <Select
                             value={selectedCrypto?.id}
                             onChange={(value) => {
-                                const crypto = cryptoOptions.find(c => c.id === value)
+                                const crypto = cryptoOptions.find((c : any) => c.id === value)
                                 if (crypto) {
                                     setSelectedCrypto(crypto)
                                     setSelectedNetwork(crypto.networks[0])
@@ -487,7 +438,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                             size="large"
                             popupClassName="crypto-select-dropdown"
                         >
-                            {cryptoOptions.map((crypto) => (
+                            {cryptoOptions.map((crypto: any) => (
                                 <Select.Option key={crypto.id} value={crypto.id}>
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-lg ${crypto.bg} flex items-center justify-center font-bold ${crypto.color} overflow-hidden`}>
@@ -529,7 +480,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                                 size="large"
                                 popupClassName="network-select-dropdown"
                             >
-                                {selectedCrypto.networks.map((network) => (
+                                {selectedCrypto.networks.map((network: any) => (
                                     <Select.Option key={network.id} value={network.id}>
                                         <div className="flex flex-col text-left">
                                             <div className="flex items-center gap-2">
@@ -555,7 +506,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                             Select Amount (USD)
                         </label>
                         <div className="grid grid-cols-3 sm:grid-cols-3 gap-3">
-                            {[0.02, 4, 9, 14, 22, 30, 34, 48, 76, 93, 100].map((amt) => (
+                            {[1, 4, 9, 14, 22, 30, 34, 48, 76, 93, 100].map((amt) => (
                                 <button
                                     key={amt}
                                     onClick={() => setDepositAmount(amt.toString())}
@@ -578,16 +529,16 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                                     const rand = (Math.floor(Math.random() * (500 - 1 + 1)) + 1).toString();
                                     setDepositAmount(rand);
                                 }}
-                                className={`relative py-4 rounded-2xl border border-dashed transition-all duration-300 flex flex-col items-center gap-1 group ${(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "")
+                                className={`relative py-4 rounded-2xl border border-dashed transition-all duration-300 flex flex-col items-center gap-1 group ${(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "")
                                     ? 'border-cyan-500 bg-cyan-500/10 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/50'
                                     : 'border-border/50 bg-secondary/20 hover:border-cyan-500/30'
                                     }`}
                             >
-                                <span className={`text-xl font-black ${(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'text-cyan-400' : 'text-foreground'}`}>
-                                    {(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? `$${depositAmount}` : <Sparkles className="w-5 h-5" />}
+                                <span className={`text-xl font-black ${(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'text-cyan-400' : 'text-foreground'}`}>
+                                    {(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? `$${depositAmount}` : <Sparkles className="w-5 h-5" />}
                                 </span>
                                 <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
-                                    {(!['0.02', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'Random' : 'Surprise'}
+                                    {(!['1', '4', '9', '14', '22', '30', '34', '48', '76', '93', '100'].includes(depositAmount) && depositAmount !== "") ? 'Random' : 'Surprise'}
                                 </span>
                             </button>
                         </div>
