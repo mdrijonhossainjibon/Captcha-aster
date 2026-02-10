@@ -90,19 +90,18 @@ export async function GET() {
                     code: activePackage.packageCode,
                     name: activePackage.name,
                     price: activePackage?.price,
-                    credits: activePackage.credits,
-                    creditsUsed: activePackage.creditsUsed,
-                    creditsRemaining: activePackage.credits,
+                    credits: activePackage?.credits,
+                    creditsUsed: activePackage?.creditsUsed,
+                    creditsRemaining: activePackage?.credits,
                     usagePercentage: Math.round(((activePackage.creditsUsed / activePackage.credits) * 100) * 10) / 10,
-                    features: activePackage.features,
-                    autoRenew: activePackage.autoRenew,
+                    features: activePackage?.features,
+                    autoRenew: activePackage?.autoRenew,
                     status: activePackage.status,
                     endDate: activePackage.endDate,
                 }
                 : null,
         })
     } catch (error :any ) {
-        console.error('Dashboard stats error:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
