@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle }: HeaderProps = {}) {
-  const { data: session } : any = useSession()
+  const { data: session } = useSession()
   const [balance, setBalance] = useState<number>(0.00)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
 

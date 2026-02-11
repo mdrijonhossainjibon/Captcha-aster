@@ -133,6 +133,8 @@ export default function KolotiCachePage() {
             // Add 6 hours for BD time (UTC+6)
             const bdDate = new Date(d.getTime() + 6 * 60 * 60 * 1000);
 
+            if (isNaN(bdDate.getTime())) return type === 'distance' ? 'Invalid date' : 'N/A';
+
             return type === 'distance'
                 ? formatDistanceToNow(bdDate, { addSuffix: true })
                 : bdDate.toLocaleString();
@@ -201,62 +203,52 @@ export default function KolotiCachePage() {
     }, [isSaving, error, isEditModalOpen, wasSaving])
 
     return (
-        <div className="p-8">
-            {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold text-foreground mb-2">Koloti Cache</h1>
-                        <p className="text-muted-foreground">AI training cache records and responses</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Total Records</p>
-                            <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="p-4 md:p-8">
+
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Total Cache</p>
-                                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+            <div className="grid grid-cols-3 gap-2 md:gap-6 mb-8">
+                <Card className="hover:shadow-md transition-all duration-300 border-none bg-gradient-to-br from-card to-secondary/20">
+                    <CardContent className="p-3 md:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] md:text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Cache</p>
+                                <p className="text-sm md:text-2xl font-bold text-foreground">
+                                    {pagination.total.toLocaleString()}
+                                </p>
                             </div>
-                            <div className="p-3 rounded-xl bg-blue-500/10">
-                                <Database className="w-6 h-6 text-blue-600" />
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Current Page</p>
-                                <p className="text-2xl font-bold text-foreground">{currentPage}/{pagination.totalPages}</p>
-                            </div>
-                            <div className="p-3 rounded-xl bg-purple-500/10">
-                                <Hash className="w-6 h-6 text-purple-600" />
+                            <div className="p-1.5 md:p-3 rounded-xl bg-blue-500/10 w-fit shrink-0">
+                                <Database className="w-3.5 h-3.5 md:w-6 md:h-6 text-blue-600" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-muted-foreground">Records/Page</p>
-                                <p className="text-2xl font-bold text-foreground">{itemsPerPage}</p>
+                <Card className="hover:shadow-md transition-all duration-300 border-none bg-gradient-to-br from-card to-secondary/20">
+                    <CardContent className="p-3 md:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] md:text-sm font-medium text-muted-foreground uppercase tracking-wider">Current Page</p>
+                                <p className="text-sm md:text-2xl font-bold text-foreground">
+                                    {currentPage}<span className="text-[10px] md:text-lg opacity-50 font-normal">/{pagination.totalPages}</span>
+                                </p>
                             </div>
-                            <div className="p-3 rounded-xl bg-green-500/10">
-                                <Calendar className="w-6 h-6 text-green-600" />
+                            <div className="p-1.5 md:p-3 rounded-xl bg-purple-500/10 w-fit shrink-0">
+                                <Hash className="w-3.5 h-3.5 md:w-6 md:h-6 text-purple-600" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="hover:shadow-md transition-all duration-300 border-none bg-gradient-to-br from-card to-secondary/20">
+                    <CardContent className="p-3 md:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] md:text-sm font-medium text-muted-foreground uppercase tracking-wider">Records/Page</p>
+                                <p className="text-sm md:text-2xl font-bold text-foreground">{itemsPerPage}</p>
+                            </div>
+                            <div className="p-1.5 md:p-3 rounded-xl bg-green-500/10 w-fit shrink-0">
+                                <Calendar className="w-3.5 h-3.5 md:w-6 md:h-6 text-green-600" />
                             </div>
                         </div>
                     </CardContent>
@@ -266,7 +258,7 @@ export default function KolotiCachePage() {
             {/* Search */}
             <Card className="mb-6">
                 <CardContent className="pt-6">
-                    <div className="flex gap-4 items-center">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
                         <div className="flex-1 relative">
                             {isLoading ? (
                                 <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin" />
@@ -278,7 +270,7 @@ export default function KolotiCachePage() {
                                 placeholder="Search by image hash or question..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm md:text-base text-foreground"
                             />
                             {searchTerm && (
                                 <button
@@ -293,7 +285,7 @@ export default function KolotiCachePage() {
                             variant="outline"
                             onClick={handleRefresh}
                             disabled={isLoading}
-                            className="gap-2 h-10 px-6 bg-secondary hover:bg-secondary/80 border-border"
+                            className="gap-2 h-10 px-6 bg-secondary hover:bg-secondary/80 border-border w-full sm:w-auto"
                         >
                             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -415,24 +407,24 @@ export default function KolotiCachePage() {
 
             {/* Pagination */}
             {!isLoading && records.length > 0 && (
-                <div className="mt-6 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center justify-center md:justify-start">
                         <span className="text-sm text-muted-foreground">
                             Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, pagination.total)} of {pagination.total} records
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         {/* Items per page selector */}
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">Rows per page:</span>
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
                             <select
                                 value={itemsPerPage}
                                 onChange={(e) => {
                                     setItemsPerPage(Number(e.target.value))
                                     setCurrentPage(1)
                                 }}
-                                className="px-3 py-1.5 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                                className="px-3 py-1.5 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-foreground"
                             >
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
@@ -448,14 +440,14 @@ export default function KolotiCachePage() {
                                 size="sm"
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={!pagination.hasPrevPage}
-                                className="h-8 px-3"
+                                className="h-8 px-3 text-xs"
                             >
-                                Previous
+                                Prev
                             </Button>
 
                             {/* Page numbers */}
                             <div className="flex items-center gap-1">
-                                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                {Array.from({ length: Math.min(pagination.totalPages <= 3 ? 3 : 5, pagination.totalPages) }, (_, i) => {
                                     let pageNum
                                     if (pagination.totalPages <= 5) {
                                         pageNum = i + 1
@@ -473,11 +465,15 @@ export default function KolotiCachePage() {
                                             variant={currentPage === pageNum ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => setCurrentPage(pageNum)}
-                                            className="h-8 w-8 p-0"
+                                            className="h-8 w-8 p-0 text-xs"
                                         >
                                             {pageNum}
                                         </Button>
                                     )
+                                }).filter((_, i, arr) => {
+                                    // Simple logic to limit page numbers on very small screens if needed, 
+                                    // but 5 buttons (each 32px) + gaps is ~200px, which fits on mobile.
+                                    return true;
                                 })}
                             </div>
 
@@ -486,7 +482,7 @@ export default function KolotiCachePage() {
                                 size="sm"
                                 onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
                                 disabled={!pagination.hasNextPage}
-                                className="h-8 px-3"
+                                className="h-8 px-3 text-xs"
                             >
                                 Next
                             </Button>

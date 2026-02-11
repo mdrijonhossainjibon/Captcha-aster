@@ -176,7 +176,8 @@ export const authOptions: NextAuthOptions = {
 
                 // Update user object with database info
                 user.id = existingUser._id.toString();
-                (user as any).role = existingUser.role; (user as any).balance = existingUser.balance
+                user.role = existingUser.role;
+                user.balance = existingUser.balance
             }
 
             return true
@@ -184,16 +185,16 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id
-                token.role = (user as any).role
-                token.balance = (user as any).balance
+                token.role = user.role
+                token.balance = user.balance
             }
             return token
         },
         async session({ session, token }) {
             if (session.user) {
-                (session.user as any).id = token.id;
-                (session.user as any).role = token.role;
-                (session.user as any).balance = token.balance;
+                session.user.id = token.id;
+                session.user.role = token.role;
+                session.user.balance = token.balance;
             }
             return session
         },
@@ -229,10 +230,10 @@ export async function requireAuth(): Promise<AuthUser | null> {
     }
 
     return {
-        userId: (session.user as any).id,
+        userId: session.user.id,
         email: session.user.email!,
-        role: (session.user as any).role,
-        balance: (session.user as any).balance,
+        role: session.user.role,
+        balance: session.user.balance,
     }
 }
 

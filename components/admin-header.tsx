@@ -1,9 +1,18 @@
 "use client"
 
-import { Bell, Search, Settings, User, Moon, Sun, Menu } from "lucide-react"
+import { Bell, Search, Settings, User, Moon, Sun, Menu, LayoutDashboard, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // Page titles mapping
 const pageTitles: Record<string, { title: string; description: string }> = {
@@ -21,7 +30,8 @@ const pageTitles: Record<string, { title: string; description: string }> = {
     "/admin/settings": { title: "Settings", description: "General system settings and configuration" },
 }
 
-export function AdminHeader() {
+export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
+    const { data: session } = useSession()
     const pathname = usePathname()
     const router = useRouter()
     const [isDark, setIsDark] = useState(false)
@@ -45,18 +55,25 @@ export function AdminHeader() {
 
     return (
         <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-16 items-center gap-4 px-6">
+            <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
+                {/* Mobile Menu Toggle */}
+                <button
+                    onClick={onMenuClick}
+                    className="p-2 rounded-xl hover:bg-secondary/80 text-muted-foreground hover:text-foreground lg:hidden transition-colors"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
                 {/* Page Title Section */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                            <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent truncate">
                                 {pageInfo.title}
                             </h1>
-                            <div className="absolute -bottom-1 left-0 h-0.5 w-12 bg-gradient-to-r from-primary to-transparent rounded-full" />
+                            <div className="absolute -bottom-1 left-0 h-0.5 w-8 sm:w-12 bg-gradient-to-r from-primary to-transparent rounded-full" />
                         </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{pageInfo.description}</p>
+                    <p className="text-[10px] sm:text-sm text-muted-foreground mt-0.5 truncate hidden xs:block">{pageInfo.description}</p>
                 </div>
 
                 {/* Actions Section */}
@@ -106,30 +123,54 @@ export function AdminHeader() {
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </button>
 
-                    {/* Settings */}
-                    <button
-                        onClick={() => router.push('/admin/settings')}
-                        className="p-2.5 rounded-xl hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all duration-300 hover:rotate-90 transform"
-                    >
-                        <Settings className="w-5 h-5 transition-transform duration-300" />
-                    </button>
+                   
+                   
 
                     {/* Divider */}
                     <div className="h-8 w-px bg-border mx-2" />
 
-                    {/* User Profile */}
-                    <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-secondary/80 transition-all duration-300 group">
-                        <div className="relative">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-sm font-bold ring-2 ring-background group-hover:ring-primary/20 transition-all duration-300">
-                                AD
-                            </div>
-                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
-                        </div>
-                        <div className="hidden lg:block text-left">
-                            <p className="text-sm font-medium text-foreground">Admin User</p>
-                            <p className="text-xs text-muted-foreground">Super Admin</p>
-                        </div>
-                    </button>
+                    {/* User Profile Dropdown */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-secondary/80 transition-all duration-300 group outline-none">
+                                <div className="relative">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-sm font-bold ring-2 ring-background group-hover:ring-primary/20 transition-all duration-300">
+                                        AD
+                                    </div>
+                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
+                                </div>
+                                <div className="hidden lg:block text-left">
+                                    <p className="text-sm font-medium text-foreground">{session?.user?.name || "Admin User"}</p>
+                                    <p className="text-xs text-muted-foreground">{session?.user?.role === 'admin' ? 'Super Admin' : 'Admin'}</p>
+                                </div>
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 mt-2">
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium leading-none">{session?.user?.name || "Admin User"}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">{session?.user?.email || "admin@example.com"}</p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => router.push('/dashboard')} className="cursor-pointer gap-2">
+                                <LayoutDashboard className="w-4 h-4" />
+                                <span>Dashboard</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push('/admin/settings')} className="cursor-pointer gap-2">
+                                <Settings className="w-4 h-4" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                                className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span>Logout</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 

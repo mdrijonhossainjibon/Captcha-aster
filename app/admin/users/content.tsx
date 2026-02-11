@@ -5,8 +5,9 @@ import { Modal, message } from "antd"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Search, MoreVertical, Ban, Unlock, Edit, Trash2, Loader2 } from "lucide-react"
+import { Search, MoreVertical, Ban, Unlock, Edit, Trash2, Loader2, Eye } from "lucide-react"
 import { Suspense } from "react"
+import { useRouter } from "next/navigation"
 import Loading from "./loading"
 
 interface User {
@@ -22,6 +23,7 @@ interface User {
 }
 
 export default function AdminUsersContent() {
+  const router = useRouter()
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [editForm, setEditForm] = useState({ name: "", balance: "", status: "" })
@@ -244,6 +246,15 @@ export default function AdminUsersContent() {
                           <td className="py-4 px-4 text-sm text-muted-foreground">{user.joined}</td>
                           <td className="py-4 px-4">
                             <div className="flex items-center justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-transparent border-blue-500/50 text-blue-500 hover:bg-blue-500 hover:text-white text-xs gap-1 h-8 px-3"
+                                onClick={() => router.push(`/admin/users/${user.id}`)}
+                              >
+                                <Eye className="w-3 h-3" />
+                                View
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
