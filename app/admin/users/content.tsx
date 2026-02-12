@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Modal, message } from "antd"
+import { useDispatch, useSelector } from "react-redux"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,12 @@ import { Search, MoreVertical, Ban, Unlock, Edit, Trash2, Loader2, Eye } from "l
 import { Suspense } from "react"
 import { useRouter } from "next/navigation"
 import Loading from "./loading"
+import { RootState } from "@/modules/rootReducer"
+import {
+  fetchAdminUsersRequest,
+  updateAdminUserRequest,
+  deleteAdminUserRequest
+} from "@/modules/admin/actions"
 
 interface User {
   id: string
@@ -22,130 +29,77 @@ interface User {
   isAdmin?: boolean
 }
 
+interface Pagination {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
 export default function AdminUsersContent() {
   const router = useRouter()
+  const dispatch = useDispatch()
+
+  // Redux state
+  const { users, loading: isLoading, pagination, isSaving, error } = useSelector((state: RootState) => state.admin)
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [editForm, setEditForm] = useState({ name: "", balance: "", status: "" })
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
-  const [isSaving, setIsSaving] = useState(false)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPrevPage: false
-  })
 
-  // Fetch users from API
+  // Fetch users from API via Redux
   useEffect(() => {
-    fetchUsers()
-  }, [currentPage, itemsPerPage])
+    dispatch(fetchAdminUsersRequest({
+      searchTerm,
+      statusFilter,
+      page: currentPage,
+      limit: itemsPerPage
+    }))
+  }, [dispatch, currentPage, itemsPerPage, searchTerm, statusFilter])
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, statusFilter])
 
-  // Fetch when page resets
+  // Handle errors
   useEffect(() => {
-    if (currentPage === 1) {
-      fetchUsers()
+    if (error) {
+      message.error(error)
     }
-  }, [currentPage])
+  }, [error])
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true)
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter) params.append('status', statusFilter)
-      params.append('page', currentPage.toString())
-      params.append('limit', itemsPerPage.toString())
-
-      const response = await fetch(`/api/admin/users?${params.toString()}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setUsers(data.users)
-        setPagination(data.pagination)
-      } else {
-        message.error(data.error || 'Failed to fetch users')
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error)
-      message.error('Failed to fetch users')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleEditUser = async () => {
+  const handleEditUser = () => {
     if (!selectedUser) return
 
-    try {
-      setIsSaving(true)
-      const response = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          name: editForm.name,
-          balance: editForm.balance,
-          status: editForm.status
-        })
-      })
+    dispatch(updateAdminUserRequest({
+      userId: selectedUser.id,
+      name: editForm.name,
+      balance: editForm.balance,
+      status: editForm.status
+    }))
 
-      const data = await response.json()
-
-      if (data.success) {
-        message.success('User updated successfully')
-        setIsEditModalOpen(false)
-        fetchUsers() // Refresh the list
-      } else {
-        message.error(data.error || 'Failed to update user')
-      }
-    } catch (error) {
-      console.error('Error updating user:', error)
-      message.error('Failed to update user')
-    } finally {
-      setIsSaving(false)
-    }
+    // Optimistically close modal
+    setIsEditModalOpen(false)
   }
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = (userId: string) => {
     Modal.confirm({
       title: 'Delete User',
       content: 'Are you sure you want to delete this user? This action cannot be undone.',
       okText: 'Delete',
       okType: 'danger',
       cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          const response = await fetch(`/api/admin/users?userId=${userId}`, {
-            method: 'DELETE'
-          })
-
-          const data = await response.json()
-
-          if (data.success) {
-            message.success('User deleted successfully')
-            fetchUsers() // Refresh the list
-          } else {
-            message.error(data.error || 'Failed to delete user')
-          }
-        } catch (error) {
-          console.error('Error deleting user:', error)
-          message.error('Failed to delete user')
-        }
+      onOk: () => {
+        dispatch(deleteAdminUserRequest(userId))
       }
     })
   }
@@ -185,14 +139,14 @@ export default function AdminUsersContent() {
           <Card>
             <CardHeader>
               <CardTitle>Users</CardTitle>
-              <CardDescription>{pagination.total} total users</CardDescription>
+              <CardDescription>{pagination?.total || 0} total users</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isLoading && (users || []).length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-              ) : users.length === 0 ? (
+              ) : (users || []).length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   No users found
                 </div>
@@ -210,7 +164,7 @@ export default function AdminUsersContent() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((user, index) => (
+                      {users.map((user: User, index: number) => (
                         <tr
                           key={user.id}
                           className="border-b border-border hover:bg-secondary/50 transition-colors"
@@ -289,7 +243,7 @@ export default function AdminUsersContent() {
           </Card>
 
           {/* Pagination */}
-          {!isLoading && users.length > 0 && (
+          {!isLoading && users && users.length > 0 && pagination && (
             <div className="mt-6 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">

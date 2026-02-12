@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import User from '@/lib/models/User'
 import { requireAdmin } from '@/lib/auth'
+import { sendAccountStatusEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
     try {
@@ -103,6 +104,12 @@ export async function PATCH(request: NextRequest) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
         }
 
+        // Fetch user before update to check current status
+        const currentUser = await User.findById(userId)
+        if (!currentUser) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
+
         // Build update object
         const updateData: any = {}
         if (name !== undefined) updateData.name = name
@@ -125,7 +132,25 @@ export async function PATCH(request: NextRequest) {
         ).select('-password')
 
         if (!updatedUser) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 })
+            return NextResponse.json({ error: 'User update failed' }, { status: 404 })
+        }
+
+        // Send email notification for status changes
+        if (status) {
+            const currentStatus = currentUser.isActive ? 'Active' : 'Inactive'
+
+            if (status !== currentStatus || status === 'Banned') {
+                // If we are already Inactive and setting Inactive, skip
+                if (currentStatus === 'Inactive' && status === 'Inactive') {
+                    // Do nothing
+                } else {
+                    await sendAccountStatusEmail({
+                        email: updatedUser.email,
+                        name: updatedUser.name || 'User',
+                        status: status
+                    })
+                }
+            }
         }
 
         return NextResponse.json({

@@ -13,3 +13,48 @@ export const fetchAdminStatsFailure = (error: string) => ({
     type: types.FETCH_ADMIN_STATS_FAILURE,
     payload: error,
 });
+
+export const fetchAdminUsersRequest = (payload: any) => ({
+    type: types.FETCH_ADMIN_USERS_REQUEST,
+    payload,
+});
+
+export const fetchAdminUsersSuccess = (payload: any) => ({
+    type: types.FETCH_ADMIN_USERS_SUCCESS,
+    payload,
+});
+
+export const fetchAdminUsersFailure = (error: string) => ({
+    type: types.FETCH_ADMIN_USERS_FAILURE,
+    payload: error,
+});
+
+export const updateAdminUserRequest = (payload: any) => ({
+    type: types.UPDATE_ADMIN_USER_REQUEST,
+    payload,
+});
+
+export const updateAdminUserSuccess = (payload: any) => ({
+    type: types.UPDATE_ADMIN_USER_SUCCESS,
+    payload,
+});
+
+export const updateAdminUserFailure = (error: string) => ({
+    type: types.UPDATE_ADMIN_USER_FAILURE,
+    payload: error,
+});
+
+export const deleteAdminUserRequest = (payload: any) => ({
+    type: types.DELETE_ADMIN_USER_REQUEST,
+    payload,
+});
+
+export const deleteAdminUserSuccess = (payload: any) => ({
+    type: types.DELETE_ADMIN_USER_SUCCESS,
+    payload,
+});
+
+export const deleteAdminUserFailure = (error: string) => ({
+    type: types.DELETE_ADMIN_USER_FAILURE,
+    payload: error,
+});
