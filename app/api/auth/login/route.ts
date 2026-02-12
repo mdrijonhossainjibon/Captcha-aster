@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Account is deactivated. Please contact support.' }, { status: 403 })
         }
 
-        /*  // Verify password
+        
          const isPasswordValid = await user.comparePassword(password)
  
          if (!isPasswordValid) {
              return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-         } */
+         }  
 
         // Check if 2FA is enabled
         if (user.twoFactorEnabled) {
