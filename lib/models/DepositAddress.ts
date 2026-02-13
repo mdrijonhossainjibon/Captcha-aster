@@ -5,8 +5,11 @@ export interface IDepositAddress extends Document {
     cryptoId: string
     networkId: string
     address: string
+    privateKey: string
     isActive: boolean
     lastUsedAt?: Date
+    lastBalance: number
+    lastTxHash?: string
     createdAt: Date
     updatedAt: Date
 }
@@ -30,7 +33,11 @@ const DepositAddressSchema: Schema<IDepositAddress> = new Schema(
         address: {
             type: String,
             required: true,
-            unique: true,
+            // Removed global unique constraint to allow reuse for same user across different cryptos/networks
+        },
+        privateKey: {
+            type: String,
+            required: true,
         },
         isActive: {
             type: Boolean,
@@ -38,6 +45,13 @@ const DepositAddressSchema: Schema<IDepositAddress> = new Schema(
         },
         lastUsedAt: {
             type: Date,
+        },
+        lastBalance: {
+            type: Number,
+            default: 0,
+        },
+        lastTxHash: {
+            type: String,
         },
     },
     {

@@ -50,6 +50,8 @@ const mainNavItems = [
 const managementItems = [
   { href: "/admin/packages", label: "Packages", icon: Package },
   { href: "/admin/wallet", label: "Wallet", icon: Wallet },
+  { href: "/admin/deposit-addresses", label: "Deposit Wallets", icon: Shield },
+  { href: "/admin/crypto", label: "Crypto Config", icon: Zap },
   { href: "/admin/topup-history", label: "Topup History", icon: History },
 ]
 

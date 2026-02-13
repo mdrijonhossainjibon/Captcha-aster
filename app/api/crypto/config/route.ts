@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import CryptoConfig from '@/lib/models/CryptoConfig'
+import CryptoConfig, { INetwork } from '@/lib/models/CryptoConfig'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 /**
  * GET /api/crypto/config
- * Fetch all active cryptocurrency configurations
+ * Fetch all cryptocurrency configurations (Admin gets all, users get active only)
  */
 export async function GET() {
     try {
         await connectDB()
+        const session = await getServerSession(authOptions)
+        const isAdmin = session?.user?.role === 'admin'
 
-        const cryptoConfigs = await CryptoConfig.find({ isActive: true })
+        const query = isAdmin ? {} : { isActive: true }
+        const cryptoConfigs = await CryptoConfig.find(query)
             .select('-__v')
             .lean()
 
-        // Filter to only include active networks
-        const filteredConfigs = cryptoConfigs.map(crypto => ({
+        // Filter to only include active networks for non-admins
+        const filteredConfigs = cryptoConfigs.map((crypto: any) => ({
             ...crypto,
-            networks: crypto.networks.filter(network => network.isActive)
+            networks: isAdmin ? crypto.networks : crypto.networks.filter((network: INetwork) => network.isActive)
         }))
 
         return NextResponse.json({
@@ -42,6 +47,11 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
     try {
+        const session = await getServerSession(authOptions)
+        if (session?.user?.role !== 'admin') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
         await connectDB()
 
         const body = await request.json()
@@ -108,5 +118,32 @@ export async function POST(request: NextRequest) {
             },
             { status: 500 }
         )
+    }
+}
+export async function DELETE(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (session?.user?.role !== 'admin') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        await connectDB()
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id') // This is the 'id' field, e.g., 'usdt'
+
+        if (!id) {
+            return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 })
+        }
+
+        const deleted = await CryptoConfig.findOneAndDelete({ id })
+
+        if (!deleted) {
+            return NextResponse.json({ success: false, error: 'Configuration not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({ success: true, message: 'Crypto configuration deleted successfully' })
+    } catch (error: any) {
+        console.error('Error deleting crypto config:', error)
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }

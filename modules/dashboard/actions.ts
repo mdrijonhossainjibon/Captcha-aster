@@ -98,4 +98,9 @@ export const fetchActivitiesFailure = (error: string) => ({
     payload: error,
 });
 
+export const updateUserBalance = (amountUSD: number) => ({
+    type: types.UPDATE_USER_BALANCE,
+    payload: amountUSD,
+});
+
 

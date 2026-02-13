@@ -43,3 +43,42 @@ export const recordDepositFailure = (error: string) => ({
     type: types.RECORD_DEPOSIT_FAILURE,
     payload: error,
 });
+
+export const fetchDepositAddressRequest = (cryptoId: string, networkId: string) => ({
+    type: types.FETCH_DEPOSIT_ADDRESS_REQUEST,
+    payload: { cryptoId, networkId },
+});
+
+export const fetchDepositAddressSuccess = (address: string) => ({
+    type: types.FETCH_DEPOSIT_ADDRESS_SUCCESS,
+    payload: address,
+});
+
+export const fetchDepositAddressFailure = (error: string) => ({
+    type: types.FETCH_DEPOSIT_ADDRESS_FAILURE,
+    payload: error,
+});
+
+export const startDepositPolling = (address: string) => ({
+    type: types.START_DEPOSIT_POLLING,
+    payload: address,
+});
+
+export const stopDepositPolling = () => ({
+    type: types.STOP_DEPOSIT_POLLING,
+});
+
+export const checkIncomingDepositsRequest = (address: string) => ({
+    type: types.CHECK_INCOMING_DEPOSITS_REQUEST,
+    payload: address,
+});
+
+export const checkIncomingDepositsSuccess = (payload: any) => ({
+    type: types.CHECK_INCOMING_DEPOSITS_SUCCESS,
+    payload,
+});
+
+export const checkIncomingDepositsFailure = (error: string) => ({
+    type: types.CHECK_INCOMING_DEPOSITS_FAILURE,
+    payload: error,
+});

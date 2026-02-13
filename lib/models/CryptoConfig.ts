@@ -9,6 +9,7 @@ export interface INetwork {
     confirmations: number
     minDeposit: string
     address: string
+    rpcUrl?: string
     tokenAddress?: string // For ERC20/BEP20 tokens
     chainId?: number // To facilitate network switching
     badge?: string
@@ -60,6 +61,9 @@ const NetworkSchema = new Schema<INetwork>({
     address: {
         type: String,
         required: true,
+    },
+    rpcUrl: {
+        type: String,
     },
     tokenAddress: {
         type: String, // Optional, only for tokens

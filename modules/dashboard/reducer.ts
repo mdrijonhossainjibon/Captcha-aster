@@ -131,6 +131,15 @@ const dashboardReducer = (state = initialState, action: any) => {
                 activitiesError: action.payload,
             };
 
+        case types.UPDATE_USER_BALANCE:
+            return {
+                ...state,
+                userData: state.userData ? {
+                    ...state.userData,
+                    balance: (state.userData.balance || 0) + action.payload
+                } : null
+            };
+
 
         default:
             return state;

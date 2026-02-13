@@ -6,6 +6,10 @@ const initialState = {
     loading: false,
     loadingPrice: false,
     recording: false,
+    depositAddress: null as string | null,
+    fetchingAddress: false,
+    pollingDeposits: false,
+    incomingDeposits: [] as any[],
     error: null,
 };
 
@@ -63,6 +67,39 @@ const cryptoReducer = (state = initialState, action: any) => {
                 ...state,
                 recording: false,
                 error: action.payload,
+            };
+        case types.FETCH_DEPOSIT_ADDRESS_REQUEST:
+            return {
+                ...state,
+                fetchingAddress: true,
+                depositAddress: null,
+            };
+        case types.FETCH_DEPOSIT_ADDRESS_SUCCESS:
+            return {
+                ...state,
+                fetchingAddress: false,
+                depositAddress: action.payload,
+            };
+        case types.FETCH_DEPOSIT_ADDRESS_FAILURE:
+            return {
+                ...state,
+                fetchingAddress: false,
+                error: action.payload,
+            };
+        case types.START_DEPOSIT_POLLING:
+            return {
+                ...state,
+                pollingDeposits: true,
+            };
+        case types.STOP_DEPOSIT_POLLING:
+            return {
+                ...state,
+                pollingDeposits: false,
+            };
+        case types.CHECK_INCOMING_DEPOSITS_SUCCESS:
+            return {
+                ...state,
+                incomingDeposits: action.payload,
             };
         default:
             return state;

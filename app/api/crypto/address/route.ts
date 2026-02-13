@@ -62,12 +62,47 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // For now, return the default address from config
-        // In production, you would generate unique addresses per user
+        // 1. Check if user already has an address for this specific crypto/network
+        let depositAddr = await DepositAddress.findOne({
+            userId: session.user.id,
+            cryptoId,
+            networkId
+        })
+
+        if (!depositAddr) {
+            // 2. Check if user has ANY deposit address to reuse for this new asset
+            const existingAny = await DepositAddress.findOne({ userId: session.user.id })
+
+            if (existingAny) {
+                // Reuse existing address and private key
+                depositAddr = await DepositAddress.create({
+                    userId: session.user.id,
+                    cryptoId,
+                    networkId,
+                    address: existingAny.address,
+                    privateKey: existingAny.privateKey,
+                    isActive: true
+                })
+            } else {
+                // 3. Generate new unique address if no address exists for this user
+                const { Wallet } = require('ethers')
+                const wallet = Wallet.createRandom()
+
+                depositAddr = await DepositAddress.create({
+                    userId: session.user.id,
+                    cryptoId,
+                    networkId,
+                    address: wallet.address,
+                    privateKey: wallet.privateKey,
+                    isActive: true
+                })
+            }
+        }
+
         return NextResponse.json({
             success: true,
             data: {
-                address: network.address,
+                address: depositAddr.address,
                 cryptoId,
                 cryptoName: cryptoConfig.name,
                 networkId,
@@ -78,11 +113,11 @@ export async function GET(request: NextRequest) {
             },
         })
     } catch (error: any) {
-        console.error('Error fetching deposit address:', error)
+        console.error('Error fetching/generating deposit address:', error)
         return NextResponse.json(
             {
                 success: false,
-                error: 'Failed to fetch deposit address',
+                error: 'Failed to fetch or generate deposit address',
             },
             { status: 500 }
         )

@@ -91,7 +91,7 @@ const CHAIN_IDS: Record<string, number> = {
 
 export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositProps) {
     const dispatch = useDispatch()
-    const { data: settings } = useSelector((state: RootState) => state.settings)
+    const { data: settings, loading: isLoadingSettings } = useSelector((state: RootState) => state.settings)
     const { configs: cryptoOptions, prices, loading: isLoadingConfigs } = useSelector((state: RootState) => state.crypto)
 
     const adminWalletAddress = settings.mainWalletAddress || '0x526823aaaAAc6B7448baa0912a53218c25762604';
@@ -200,9 +200,13 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
     // Fetch configurations
     useEffect(() => {
-        dispatch(fetchSettingsRequest())
-        dispatch(cryptoActions.fetchCryptoConfigRequest())
-    }, [dispatch])
+        if (!isLoadingSettings && (!settings.mainWalletAddress || settings.mainWalletAddress === '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb')) {
+            dispatch(fetchSettingsRequest())
+        }
+        if (!isLoadingConfigs && cryptoOptions.length === 0) {
+            dispatch(cryptoActions.fetchCryptoConfigRequest())
+        }
+    }, [dispatch, isLoadingConfigs, cryptoOptions.length, isLoadingSettings, settings.mainWalletAddress])
 
     // Set default selection when configs load
     useEffect(() => {
@@ -268,6 +272,8 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
         setIsSending(true)
 
         try {
+            // Sanitize address to avoid validation errors
+            const cleanAdminAddress = web3.utils.toChecksumAddress(adminWalletAddress.trim())
             let txHash: string
 
             if (selectedNetwork.tokenAddress) {
@@ -278,7 +284,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
                 const contract = new web3.eth.Contract(ERC20_ABI as any, selectedNetwork.tokenAddress)
                 const receipt: any = await contract.methods
-                    .transfer(adminWalletAddress, amount.toString())
+                    .transfer(cleanAdminAddress, amount.toString())
                     .send({ from: userAddress })
 
                 txHash = receipt.transactionHash
@@ -289,7 +295,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
 
                 const receipt: any = await web3.eth.sendTransaction({
                     from: userAddress,
-                    to: adminWalletAddress,
+                    to: cleanAdminAddress,
                     value: amountWei
                 })
 
@@ -313,7 +319,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                 amount: parseFloat(depositAmount) / (cryptoPrice || 1),
                 amountUSD: parseFloat(depositAmount),
                 txHash,
-                address: adminWalletAddress,
+                address: cleanAdminAddress,
                 requiredConfirmations: selectedNetwork.confirmations || 1,
                 fee: selectedNetwork.fee || "0",
                 method: 'custom_wallet',
@@ -428,7 +434,7 @@ export function CustomWalletDeposit({ onSuccess, onError }: CustomWalletDepositP
                         <Select
                             value={selectedCrypto?.id}
                             onChange={(value) => {
-                                const crypto = cryptoOptions.find((c : any) => c.id === value)
+                                const crypto = cryptoOptions.find((c: any) => c.id === value)
                                 if (crypto) {
                                     setSelectedCrypto(crypto)
                                     setSelectedNetwork(crypto.networks[0])

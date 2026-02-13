@@ -228,11 +228,10 @@ export function DashboardPaymentContent() {
             <div className="grid grid-cols-4 gap-3">
               <button
                 onClick={() => setPaymentMethod("card")}
-                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                  paymentMethod === "card"
+                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${paymentMethod === "card"
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                     : "border-border hover:border-primary/30"
-                }`}
+                  }`}
               >
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center ${paymentMethod === "card" ? "bg-primary/20" : "bg-secondary"}`}
@@ -246,11 +245,10 @@ export function DashboardPaymentContent() {
               </button>
               <button
                 onClick={() => setPaymentMethod("paypal")}
-                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                  paymentMethod === "paypal"
+                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${paymentMethod === "paypal"
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                     : "border-border hover:border-primary/30"
-                }`}
+                  }`}
               >
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center ${paymentMethod === "paypal" ? "bg-primary/20" : "bg-secondary"}`}
@@ -264,11 +262,10 @@ export function DashboardPaymentContent() {
               </button>
               <button
                 onClick={() => setPaymentMethod("crypto")}
-                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                  paymentMethod === "crypto"
+                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${paymentMethod === "crypto"
                     ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                     : "border-border hover:border-primary/30"
-                }`}
+                  }`}
               >
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center ${paymentMethod === "crypto" ? "bg-primary/20" : "bg-secondary"}`}
@@ -282,11 +279,10 @@ export function DashboardPaymentContent() {
               </button>
               <button
                 onClick={() => setPaymentMethod("metamask")}
-                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 relative overflow-hidden ${
-                  paymentMethod === "metamask"
+                className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 relative overflow-hidden ${paymentMethod === "metamask"
                     ? "border-orange-500 bg-orange-500/5 shadow-lg shadow-orange-500/10"
                     : "border-border hover:border-orange-500/30"
-                }`}
+                  }`}
               >
                 <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-orange-500 text-white">
                   WEB3
@@ -394,11 +390,10 @@ export function DashboardPaymentContent() {
                     <button
                       key={crypto.id}
                       onClick={() => setSelectedCrypto(crypto.id)}
-                      className={`p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                        selectedCrypto === crypto.id
+                      className={`p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${selectedCrypto === crypto.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/30"
-                      }`}
+                        }`}
                     >
                       <div className={`w-10 h-10 rounded-xl ${crypto.bg} flex items-center justify-center`}>
                         <crypto.icon className={`w-5 h-5 ${crypto.color}`} />
@@ -756,7 +751,7 @@ export function DashboardPaymentContent() {
             <div className="p-4 rounded-xl bg-secondary/30 border border-border text-center">
               <p className="text-xs text-muted-foreground">
                 Need help?{" "}
-                <Link href="/dashboard/support" className="text-primary hover:underline">
+                <Link href="https://t.me/CaptchaMasterBangladesh" target="_blank" className="text-primary hover:underline">
                   Contact Support
                 </Link>
               </p>

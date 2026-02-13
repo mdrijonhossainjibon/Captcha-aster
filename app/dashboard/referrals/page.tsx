@@ -41,31 +41,9 @@ export default function ReferralsPage() {
 
     return (
         <div className="relative p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-700 min-h-[calc(100vh-100px)]">
-            {/* Coming Soon Overlay */}
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/20 backdrop-blur-md rounded-2xl m-2 md:m-4">
-                <div className="bg-card/90 border border-border/50 p-8 md:p-12 rounded-3xl shadow-2xl flex flex-col items-center text-center max-w-md mx-4 animate-in zoom-in duration-500">
-                    <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-                        <Clock className="w-10 h-10 text-primary animate-pulse" />
-                    </div>
-                    <h2 className="text-3xl font-black text-foreground mb-3 tracking-tight">Referral Program</h2>
-                    <p className="text-5xl font-black text-primary mb-6 tracking-tighter">COMING SOON</p>
-                    <div className="flex flex-col items-center gap-4 w-full">
-                        <div className="px-6 py-2 bg-secondary rounded-full border border-border text-sm font-bold text-muted-foreground flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-amber-500" />
-                            Launch in 20 Days
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                            We're putting the finishing touches on our premium referral system. Get ready to earn <span className="text-foreground font-bold">15% lifetime commission</span> on every purchase.
-                        </p>
-                        <Button className="w-full mt-4 bg-primary text-primary-foreground font-bold py-6 rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform">
-                            Notify Me When Ready
-                        </Button>
-                    </div>
-                </div>
-            </div>
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pointer-events-none opacity-50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         Invite & Earn <Gift className="w-6 h-6 text-primary" />
@@ -74,12 +52,12 @@ export default function ReferralsPage() {
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl">
                     <Trophy className="w-5 h-5 text-primary" />
-                    <span className="text-sm font-bold text-primary">Soon</span>
+                    <span className="text-sm font-bold text-primary">Live Early Access</span>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pointer-events-none opacity-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, i) => (
                     <Card key={i} className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/30 transition-all duration-300">
                         <CardContent className="p-6">
@@ -97,7 +75,7 @@ export default function ReferralsPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pointer-events-none opacity-50">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Referral Link Card */}
                 <Card className="lg:col-span-2 border-border/50 bg-card/30 backdrop-blur-md overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none" />
@@ -196,7 +174,7 @@ export default function ReferralsPage() {
             </div>
 
             {/* Recent Referrals */}
-            <Card className="border-border/50 bg-card/30 backdrop-blur-sm pointer-events-none opacity-50">
+            <Card className="border-border/50 bg-card/30 backdrop-blur-sm">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
                         <CardTitle className="text-xl font-bold text-foreground">Recent Referrals</CardTitle>
