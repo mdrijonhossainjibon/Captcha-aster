@@ -69,7 +69,7 @@ const faqs = [
 ]
 
 export function DashboardDepositCrypto() {
-    const [depositMethod, setDepositMethod] = useState<'crypto' | 'wallet'>('wallet')
+    const [depositMethod, setDepositMethod] = useState<'crypto' | 'wallet'>('crypto')
     const [selectedCrypto, setSelectedCrypto] = useState<CryptoOption | null>(null)
     const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null)
     const [isMobile, setIsMobile] = useState(false)
@@ -167,6 +167,15 @@ export function DashboardDepositCrypto() {
                     {/* Deposit Method Tabs */}
                     <Tabs value={depositMethod} onValueChange={(value) => setDepositMethod(value as 'crypto' | 'wallet')} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 bg-card/50 backdrop-blur-sm border border-border/50 p-1">
+                              <TabsTrigger
+                                value="crypto"
+                                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-black font-semibold transition-all duration-300"
+                            >
+                                <Coins className="w-4 h-4" />
+                                <span className="hidden sm:inline">Manual Deposit</span>
+                                <span className="sm:hidden">Crypto</span>
+                            </TabsTrigger>
+                           
                             <TabsTrigger
                                 value="wallet"
                                 className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-black font-semibold transition-all duration-300"
@@ -175,14 +184,7 @@ export function DashboardDepositCrypto() {
                                 <span className="hidden sm:inline">Web3 Wallet</span>
                                 <span className="sm:hidden">Wallet</span>
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="crypto"
-                                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-black font-semibold transition-all duration-300"
-                            >
-                                <Coins className="w-4 h-4" />
-                                <span className="hidden sm:inline">Manual Deposit</span>
-                                <span className="sm:hidden">Crypto</span>
-                            </TabsTrigger>
+                         
                         </TabsList>
 
                         {/* Web3 Wallet Deposit Tab Content - NOW FIRST */}
