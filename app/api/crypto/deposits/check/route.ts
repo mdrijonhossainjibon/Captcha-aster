@@ -6,7 +6,7 @@ import Deposit from '@/lib/models/Deposit'
 import User from '@/lib/models/User'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth';
-import { getDepositHistory, getERC20Decimals, formatTokenBalance } from 'auth-fingerprint'
+import { getDepositHistory, getERC20Decimals, formatTokenBalance } from '@/lib/getDepositHistory'
 
 /**
  * GET /api/crypto/deposits/check
@@ -56,19 +56,16 @@ export async function GET(request: NextRequest) {
         }
 
         // 2. Get the specific active deposit address for this user
-        const depAddr = await DepositAddress.findOne({
-            userId: user._id,
-            address: address,
-            isActive: true
-        })
-
+        const depAddr = await DepositAddress.findOne({  userId: user._id,  address: address, isActive: true })
+ 
+ 
 
         const newlyDetected = []
 
         if (depAddr) {
             // 3. Get crypto config to get RPC URL
             const config = await CryptoConfig.findOne({ id: depAddr.cryptoId, isActive: true })
-
+ 
             if (config) {
                 const network = config.networks.find(n => n.id === depAddr.networkId)
 
@@ -78,6 +75,7 @@ export async function GET(request: NextRequest) {
                             const data = await getDepositHistory(network.address, depAddr.address, network.rpcUrl);
                             const decimals = await getERC20Decimals(network.rpcUrl, network.address);
 
+ 
                             for (const tx of data) {
                                 const history = await Deposit.findOne({ txHash: tx.txHash });
                                 if (history) {
@@ -89,7 +87,7 @@ export async function GET(request: NextRequest) {
                                 user.balance += amountNum;
                                 await user.save();
 
-                                const deposit = await Deposit.create({
+                             const deposit = await Deposit.create({
                                     userId: user._id,
                                     cryptoId: depAddr.cryptoId,
                                     cryptoName: config.name,
