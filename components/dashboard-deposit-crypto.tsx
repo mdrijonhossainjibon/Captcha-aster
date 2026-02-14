@@ -23,8 +23,7 @@ import { ManualCryptoDeposit } from "./manual-crypto-deposit"
 import { useDispatch, useSelector } from "react-redux"
 import { RootState } from "@/modules/rootReducer"
 import { fetchCryptoConfigRequest } from "@/modules/crypto/actions"
-
-// Type definitions
+ 
 interface Network {
     id: string
     name: string
