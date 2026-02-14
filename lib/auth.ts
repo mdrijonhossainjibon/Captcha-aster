@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
 
                     existingUser = newUser.toObject()
 
-                    // Create Free Trial Package for new OAuth users
+                  /*   // Create Free Trial Package for new OAuth users
                     const trialEndDate = new Date()
                     trialEndDate.setDate(trialEndDate.getDate() + 3) // 3 days validity
 
@@ -122,7 +122,7 @@ export const authOptions: NextAuthOptions = {
                         autoRenew: false,
                         startDate: new Date(),
                         endDate: trialEndDate,
-                    })
+                    }) */
 
                     // Generate Default API Key
                     await ApiKey.create({

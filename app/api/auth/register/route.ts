@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         // Create Free Trial Package
         const trialEndDate = new Date()
         trialEndDate.setDate(trialEndDate.getDate() + 3) // 3 days validity
-
+/* 
         await Package.create({
             userId: user._id,
             packageCode: 'TRIAL',
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
             autoRenew: false,
             startDate: new Date(),
             endDate: trialEndDate,
-        })
+        }) */
 
         // Generate Default API Key
         await ApiKey.create({
