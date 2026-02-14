@@ -12,16 +12,13 @@ import {
     Shield,
     TrendingUp,
     Loader2,
-    Wallet,
     Coins
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { QRCode, Select } from "antd"
 import { Popup } from "antd-mobile"
 import Image from "next/image"
 import Link from "next/link"
-import { CustomWalletDeposit } from "./custom-wallet-deposit"
 import { ManualCryptoDeposit } from "./manual-crypto-deposit"
 import { useDispatch, useSelector } from "react-redux"
 import { RootState } from "@/modules/rootReducer"
@@ -69,7 +66,6 @@ const faqs = [
 ]
 
 export function DashboardDepositCrypto() {
-    const [depositMethod, setDepositMethod] = useState<'crypto' | 'wallet'>('crypto')
     const [selectedCrypto, setSelectedCrypto] = useState<CryptoOption | null>(null)
     const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null)
     const [isMobile, setIsMobile] = useState(false)
@@ -164,55 +160,16 @@ export function DashboardDepositCrypto() {
 
 
 
-                    {/* Deposit Method Tabs */}
-                    <Tabs value={depositMethod} onValueChange={(value) => setDepositMethod(value as 'crypto' | 'wallet')} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 bg-card/50 backdrop-blur-sm border border-border/50 p-1">
-                              <TabsTrigger
-                                value="crypto"
-                                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-black font-semibold transition-all duration-300"
-                            >
-                                <Coins className="w-4 h-4" />
-                                <span className="hidden sm:inline">Manual Deposit</span>
-                                <span className="sm:hidden">Crypto</span>
-                            </TabsTrigger>
-                           
-                            <TabsTrigger
-                                value="wallet"
-                                className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-500 data-[state=active]:text-black font-semibold transition-all duration-300"
-                            >
-                                <Wallet className="w-4 h-4" />
-                                <span className="hidden sm:inline">Web3 Wallet</span>
-                                <span className="sm:hidden">Wallet</span>
-                            </TabsTrigger>
-                         
-                        </TabsList>
-
-                        {/* Web3 Wallet Deposit Tab Content - NOW FIRST */}
-                        <TabsContent value="wallet" className="mt-6">
-                            <CustomWalletDeposit
-                                onSuccess={(txHash) => {
-                                    console.log("Deposit successful:", txHash)
-                                }}
-                                onError={(error) => {
-                                    console.error("Deposit error:", error)
-                                }}
-                            />
-                        </TabsContent>
-
-                        {/* Crypto Deposit Tab Content - NOW SECOND */}
-                        <TabsContent value="crypto" className="mt-6 space-y-4 md:space-y-6 relative">
-                            <ManualCryptoDeposit
-                                cryptoOptions={cryptoOptions}
-                                selectedCrypto={selectedCrypto}
-                                selectedNetwork={selectedNetwork}
-                                onCryptoSelect={handleCryptoSelect}
-                                onNetworkSelect={handleNetworkSelect}
-                            />
-                        </TabsContent>
-
-
-
-                    </Tabs>
+                    {/* Crypto Deposit Content */}
+                    <div className="mt-6 space-y-4 md:space-y-6 relative">
+                        <ManualCryptoDeposit
+                            cryptoOptions={cryptoOptions}
+                            selectedCrypto={selectedCrypto}
+                            selectedNetwork={selectedNetwork}
+                            onCryptoSelect={handleCryptoSelect}
+                            onNetworkSelect={handleNetworkSelect}
+                        />
+                    </div>
                 </div>
 
                 {/* Right Side - Enhanced FAQ & Support */}
