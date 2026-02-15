@@ -71,10 +71,111 @@ function* updateKolotiCacheAnswerSaga(action: any): Generator {
     }
 }
 
+// Bot Endpoints Sagas
+function* fetchBotEndpointsSaga(): Generator {
+    try {
+        const { response, status }: any = yield (call as any)(API_CALL, {
+            method: 'GET',
+            url: '/admin/bot-endpoints'
+        });
+
+        if (status === 200) {
+            yield put(actions.fetchBotEndpointsSuccess(response.endpoints || []));
+        } else {
+            yield put(actions.fetchBotEndpointsFailure(response?.error || 'Failed to fetch bot endpoints'));
+        }
+    } catch (error: any) {
+        yield put(actions.fetchBotEndpointsFailure(error.message || 'An error occurred'));
+    }
+}
+
+function* createBotEndpointSaga(action: any): Generator {
+    try {
+        const { response, status }: any = yield (call as any)(API_CALL, {
+            method: 'POST',
+            url: '/admin/bot-endpoints',
+            body: action.payload
+        });
+
+        if (status === 200 || status === 201) {
+            yield put(actions.createBotEndpointSuccess(response.endpoint));
+            yield put(actions.fetchBotEndpointsRequest());
+        } else {
+            yield put(actions.createBotEndpointFailure(response?.error || 'Failed to create bot endpoint'));
+        }
+    } catch (error: any) {
+        yield put(actions.createBotEndpointFailure(error.message || 'An error occurred'));
+    }
+}
+
+function* updateBotEndpointSaga(action: any): Generator {
+    try {
+        const { id, endpoint } = action.payload;
+        const { response, status }: any = yield (call as any)(API_CALL, {
+            method: 'PUT',
+            url: `/admin/bot-endpoints/${id}`,
+            body: endpoint
+        });
+
+        if (status === 200) {
+            yield put(actions.updateBotEndpointSuccess(response.endpoint));
+            yield put(actions.fetchBotEndpointsRequest());
+        } else {
+            yield put(actions.updateBotEndpointFailure(response?.error || 'Failed to update bot endpoint'));
+        }
+    } catch (error: any) {
+        yield put(actions.updateBotEndpointFailure(error.message || 'An error occurred'));
+    }
+}
+
+function* deleteBotEndpointSaga(action: any): Generator {
+    try {
+        const id = action.payload;
+        const { response, status }: any = yield (call as any)(API_CALL, {
+            method: 'DELETE',
+            url: `/admin/bot-endpoints/${id}`
+        });
+
+        if (status === 200) {
+            yield put(actions.deleteBotEndpointSuccess(id));
+        } else {
+            yield put(actions.deleteBotEndpointFailure(response?.error || 'Failed to delete bot endpoint'));
+        }
+    } catch (error: any) {
+        yield put(actions.deleteBotEndpointFailure(error.message || 'An error occurred'));
+    }
+}
+
+function* refreshBotClassesSaga(action: any): Generator {
+    try {
+        const endpoint = action.payload;
+        const refreshUrl = `${endpoint.protocol}://${endpoint.endpoint}:${endpoint.port}/refresh_classes`;
+
+        const { response, status }: any = yield (call as any)(API_CALL, {
+            method: 'POST',
+            url: refreshUrl,
+            isExternalUrl: true
+        });
+
+        if (status === 200) {
+            yield put(actions.refreshBotClassesSuccess(response));
+        } else {
+            yield put(actions.refreshBotClassesFailure(response?.error || 'Failed to refresh classes'));
+        }
+    } catch (error: any) {
+        yield put(actions.refreshBotClassesFailure(error.message || 'An error occurred'));
+    }
+}
+
 export default function* aiTrainingSaga() {
     yield all([
         takeLatest(types.FETCH_KOLOTI_CACHE_REQUEST, fetchKolotiCacheSaga),
         takeLatest(types.DELETE_KOLOTI_CACHE_REQUEST, deleteKolotiCacheSaga),
         takeLatest(types.UPDATE_KOLOTI_CACHE_ANSWER_REQUEST, updateKolotiCacheAnswerSaga),
+        takeLatest(types.FETCH_BOT_ENDPOINTS_REQUEST, fetchBotEndpointsSaga),
+        takeLatest(types.CREATE_BOT_ENDPOINT_REQUEST, createBotEndpointSaga),
+        takeLatest(types.UPDATE_BOT_ENDPOINT_REQUEST, updateBotEndpointSaga),
+        takeLatest(types.DELETE_BOT_ENDPOINT_REQUEST, deleteBotEndpointSaga),
+        takeLatest(types.REFRESH_BOT_CLASSES_REQUEST, refreshBotClassesSaga),
     ]);
 }

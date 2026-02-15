@@ -1,8 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { Plus, Pencil, Trash2, Search, Server, Globe, AlertCircle, CheckCircle, Link as LinkIcon, RotateCw } from "lucide-react"
 import { toast } from "sonner"
+import { useState } from "react"
+import {
+    fetchBotEndpointsRequest,
+    createBotEndpointRequest,
+    updateBotEndpointRequest,
+    deleteBotEndpointRequest,
+    refreshBotClassesRequest
+} from "@/modules/ai-training/actions"
+import { RootState } from "@/modules/rootReducer"
 
 interface BotEndpoint {
     _id: string
@@ -16,13 +26,16 @@ interface BotEndpoint {
 }
 
 export default function BotEndpointsPage() {
-    const [endpoints, setEndpoints] = useState<BotEndpoint[]>([])
-    const [loading, setLoading] = useState(true)
+    const dispatch = useDispatch()
+
+    // Redux state
+    const { botEndpoints, botEndpointsLoading, isSaving, isDeleting, isRefreshing, refreshResponse } = useSelector(
+        (state: RootState) => state.aiTraining
+    )
+
     const [searchTerm, setSearchTerm] = useState("")
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isRebootModalOpen, setIsRebootModalOpen] = useState(false)
-    const [rebootResponse, setRebootResponse] = useState<any>(null)
-    const [rebootLoading, setRebootLoading] = useState(false)
     const [currentEndpoint, setCurrentEndpoint] = useState<BotEndpoint | null>(null)
     const [editingEndpoint, setEditingEndpoint] = useState<BotEndpoint | null>(null)
     const [formData, setFormData] = useState({
@@ -34,53 +47,35 @@ export default function BotEndpointsPage() {
     })
 
     useEffect(() => {
-        fetchEndpoints()
-    }, [])
+        dispatch(fetchBotEndpointsRequest())
+    }, [dispatch])
 
-    const fetchEndpoints = async () => {
-        try {
-            setLoading(true)
-            const response = await fetch("/api/admin/bot-endpoints")
-            if (!response.ok) throw new Error("Failed to fetch bot endpoints")
-            const data = await response.json()
-            setEndpoints(data.endpoints || [])
-        } catch (error) {
-            toast.error("Failed to load bot endpoints")
-            console.error(error)
-        } finally {
-            setLoading(false)
+    // Show toast for refresh response
+    useEffect(() => {
+        if (refreshResponse && !isRefreshing) {
+            if (refreshResponse.status === "ok") {
+                toast.success(refreshResponse.message || "Classes refreshed successfully")
+            } else {
+                toast.error(refreshResponse.message || "Failed to refresh classes")
+            }
         }
-    }
+    }, [refreshResponse, isRefreshing])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        try {
-            const url = editingEndpoint
-                ? `/api/admin/bot-endpoints/${editingEndpoint._id}`
-                : "/api/admin/bot-endpoints"
-
-            const method = editingEndpoint ? "PUT" : "POST"
-
-            const response = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData)
-            })
-
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.message || "Failed to save bot endpoint")
-            }
-
-            toast.success(editingEndpoint ? "Bot endpoint updated" : "Bot endpoint created")
-            setIsModalOpen(false)
-            setFormData({ botName: "", endpoint: "", port: 80, protocol: "http", isActive: true })
-            setEditingEndpoint(null)
-            fetchEndpoints()
-        } catch (error: any) {
-            toast.error(error.message || "Failed to save bot endpoint")
+        if (editingEndpoint) {
+            dispatch(updateBotEndpointRequest({
+                id: editingEndpoint._id,
+                endpoint: formData
+            }))
+        } else {
+            dispatch(createBotEndpointRequest(formData))
         }
+
+        setIsModalOpen(false)
+        setFormData({ botName: "", endpoint: "", port: 80, protocol: "http", isActive: true })
+        setEditingEndpoint(null)
     }
 
     const handleEdit = (endpoint: BotEndpoint) => {
@@ -97,83 +92,32 @@ export default function BotEndpointsPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this bot endpoint?")) return
-
-        try {
-            const response = await fetch(`/api/admin/bot-endpoints/${id}`, {
-                method: "DELETE"
-            })
-
-            if (!response.ok) throw new Error("Failed to delete bot endpoint")
-
-            toast.success("Bot endpoint deleted")
-            fetchEndpoints()
-        } catch (error) {
-            toast.error("Failed to delete bot endpoint")
-        }
+        dispatch(deleteBotEndpointRequest(id))
     }
 
     const toggleStatus = async (endpoint: BotEndpoint) => {
-        try {
-            const response = await fetch(`/api/admin/bot-endpoints/${endpoint._id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...endpoint,
-                    isActive: !endpoint.isActive
-                })
-            })
-
-            if (!response.ok) throw new Error("Failed to update endpoint status")
-
-            toast.success(`Endpoint ${!endpoint.isActive ? "activated" : "deactivated"}`)
-            fetchEndpoints()
-        } catch (error) {
-            toast.error("Failed to update endpoint status")
-        }
+        dispatch(updateBotEndpointRequest({
+            id: endpoint._id,
+            endpoint: {
+                ...endpoint,
+                isActive: !endpoint.isActive
+            }
+        }))
     }
 
     const handleReboot = async (endpoint: BotEndpoint) => {
         setCurrentEndpoint(endpoint)
         setIsRebootModalOpen(true)
-        setRebootResponse(null)
-        setRebootLoading(true)
-
-        try {
-            const refreshUrl = `${endpoint.protocol}://${endpoint.endpoint}:${endpoint.port}/refresh_classes`
-
-            const response = await fetch(refreshUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }
-            })
-
-            if (!response.ok) {
-                throw new Error(`Failed to refresh classes: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-            setRebootResponse(data)
-
-            if (data.status === "ok") {
-                toast.success(data.message || "Classes refreshed successfully")
-            }
-        } catch (error: any) {
-            setRebootResponse({
-                status: "error",
-                message: error.message || "Failed to refresh classes"
-            })
-            toast.error(error.message || "Failed to refresh classes")
-        } finally {
-            setRebootLoading(false)
-        }
+        dispatch(refreshBotClassesRequest(endpoint))
     }
 
-    const filteredEndpoints = endpoints.filter(
-        (endpoint) =>
+    const filteredEndpoints = botEndpoints.filter(
+        (endpoint: BotEndpoint) =>
             endpoint.botName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             endpoint.endpoint.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    const activeEndpoints = endpoints.filter(ep => ep.isActive).length
+    const activeEndpoints = botEndpoints.filter((ep: BotEndpoint) => ep.isActive).length
 
     return (
         <div className="min-h-screen bg-background p-6">
@@ -221,7 +165,7 @@ export default function BotEndpointsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Total Endpoints</p>
                                 <p className="text-2xl font-bold text-foreground mt-1">
-                                    {endpoints.length}
+                                    {botEndpoints.length}
                                 </p>
                             </div>
                             <Server className="w-10 h-10 text-primary/50" />
@@ -243,7 +187,7 @@ export default function BotEndpointsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Inactive Endpoints</p>
                                 <p className="text-2xl font-bold text-foreground mt-1">
-                                    {endpoints.length - activeEndpoints}
+                                    {botEndpoints.length - activeEndpoints}
                                 </p>
                             </div>
                             <AlertCircle className="w-10 h-10 text-orange-500/50" />
@@ -253,7 +197,7 @@ export default function BotEndpointsPage() {
 
                 {/* Table */}
                 <div className="bg-card border border-border rounded-lg overflow-hidden">
-                    {loading ? (
+                    {botEndpointsLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                         </div>
@@ -286,7 +230,7 @@ export default function BotEndpointsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {filteredEndpoints.map((endpoint) => (
+                                    {filteredEndpoints.map((endpoint: BotEndpoint) => (
                                         <tr key={endpoint._id} className="hover:bg-muted/30 transition-colors">
                                             <td className="px-6 py-4 text-sm font-medium text-foreground">
                                                 {endpoint.botName}
@@ -429,9 +373,10 @@ export default function BotEndpointsPage() {
                             <div className="flex items-center gap-3 pt-4">
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                                    disabled={isSaving}
+                                    className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                                 >
-                                    {editingEndpoint ? "Update" : "Create"}
+                                    {isSaving ? "Saving..." : editingEndpoint ? "Update" : "Create"}
                                 </button>
                                 <button
                                     type="button"
@@ -455,7 +400,7 @@ export default function BotEndpointsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                     <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md">
                         <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-                            <RotateCw className={`w-5 h-5 ${rebootLoading ? 'animate-spin' : ''}`} />
+                            <RotateCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
                             Refresh Classes - {currentEndpoint?.botName}
                         </h2>
 
@@ -467,32 +412,32 @@ export default function BotEndpointsPage() {
                                 </p>
                             </div>
 
-                            {rebootLoading ? (
+                            {isRefreshing ? (
                                 <div className="flex flex-col items-center justify-center py-8">
                                     <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
                                     <p className="text-sm text-muted-foreground">Fetching response...</p>
                                 </div>
-                            ) : rebootResponse ? (
+                            ) : refreshResponse ? (
                                 <div className="space-y-3">
                                     <div className="bg-muted/50 rounded-lg p-4">
                                         <p className="text-sm font-semibold text-foreground mb-2">Response:</p>
-                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3 ${rebootResponse.status === "ok"
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-3 ${refreshResponse.status === "ok"
                                             ? "bg-green-500/10 text-green-500"
                                             : "bg-red-500/10 text-red-500"
                                             }`}>
-                                            <div className={`w-2 h-2 rounded-full ${rebootResponse.status === "ok" ? "bg-green-500" : "bg-red-500"
+                                            <div className={`w-2 h-2 rounded-full ${refreshResponse.status === "ok" ? "bg-green-500" : "bg-red-500"
                                                 }`} />
-                                            {rebootResponse.status?.toUpperCase()}
+                                            {refreshResponse.status?.toUpperCase()}
                                         </div>
                                         <p className="text-sm text-foreground mb-3">
-                                            <span className="font-medium">Message:</span> {rebootResponse.message}
+                                            <span className="font-medium">Message:</span> {refreshResponse.message}
                                         </p>
                                         <details className="cursor-pointer">
                                             <summary className="text-sm font-medium text-muted-foreground hover:text-foreground">
                                                 View Full Response
                                             </summary>
                                             <pre className="mt-2 p-3 bg-background rounded text-xs overflow-auto max-h-48 font-mono">
-                                                {JSON.stringify(rebootResponse, null, 2)}
+                                                {JSON.stringify(refreshResponse, null, 2)}
                                             </pre>
                                         </details>
                                     </div>
@@ -504,7 +449,6 @@ export default function BotEndpointsPage() {
                                     type="button"
                                     onClick={() => {
                                         setIsRebootModalOpen(false)
-                                        setRebootResponse(null)
                                         setCurrentEndpoint(null)
                                     }}
                                     className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
