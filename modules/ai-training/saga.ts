@@ -149,16 +149,19 @@ function* deleteBotEndpointSaga(action: any): Generator {
 function* refreshBotClassesSaga(action: any): Generator {
     try {
         const endpoint = action.payload;
-        const refreshUrl = `${endpoint.protocol}://${endpoint.endpoint}:${endpoint.port}/refresh_classes`;
 
         const { response, status }: any = yield (call as any)(API_CALL, {
             method: 'POST',
-            url: refreshUrl,
-            isExternalUrl: true
+            url: '/admin/bot-endpoints/refresh',
+            body: {
+                protocol: endpoint.protocol,
+                endpoint: endpoint.endpoint,
+                port: endpoint.port
+            }
         });
 
         if (status === 200) {
-            yield put(actions.refreshBotClassesSuccess(response));
+            yield put(actions.refreshBotClassesSuccess(response.data));
         } else {
             yield put(actions.refreshBotClassesFailure(response?.error || 'Failed to refresh classes'));
         }
