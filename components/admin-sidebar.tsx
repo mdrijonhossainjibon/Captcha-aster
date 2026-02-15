@@ -38,6 +38,8 @@ import {
   History,
   Bot,
   TrendingUp,
+  Server,
+  HeartPulse,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 
@@ -56,7 +58,10 @@ const managementItems = [
 ]
 
 const aiTrainingItems = [
-  { href: "/admin/ai-training/bots", label: "Bot Management", icon: Bot }
+  { href: "/admin/ai-training/bots", label: "Bot Management", icon: Bot },
+  { href: "/admin/ai-training/bot-endpoints", label: "Bot Endpoints", icon: Server },
+  { href: "/admin/ai-training/health-check", label: "Health Check", icon: HeartPulse },
+  { href: "/admin/ai-training/training-data", label: "Training Data", icon: Database }
 ]
 
 const systemItems = [
