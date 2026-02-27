@@ -6,15 +6,18 @@ const initialState = {
     error: null,
     users: [],
     pagination: {
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPrevPage: false
+        total: 0, page: 1, limit: 10,
+        totalPages: 0, hasNextPage: false, hasPrevPage: false
     },
-    isSaving: false
+    isSaving: false,
+    // Bot Management
+    bots: [],
+    botPagination: {
+        total: 0, page: 1, limit: 10,
+        totalPages: 0, hasNextPage: false, hasPrevPage: false
+    },
 };
+
 
 const adminReducer = (state = initialState, action: any) => {
     switch (action.type) {
@@ -97,9 +100,49 @@ const adminReducer = (state = initialState, action: any) => {
                 isSaving: false,
                 error: action.payload,
             };
+
+        // ── Bot Management ──────────────────────────────────────────────────
+        case types.FETCH_ADMIN_BOTS_REQUEST:
+            return { ...state, loading: true, error: null };
+        case types.FETCH_ADMIN_BOTS_SUCCESS:
+            return {
+                ...state,
+                loading: false,
+                bots: action.payload.bots,
+                botPagination: action.payload.pagination,
+                error: null,
+            };
+        case types.FETCH_ADMIN_BOTS_FAILURE:
+            return { ...state, loading: false, error: action.payload };
+
+        case types.UPDATE_ADMIN_BOT_REQUEST:
+            return { ...state, isSaving: true, error: null };
+        case types.UPDATE_ADMIN_BOT_SUCCESS:
+            return {
+                ...state,
+                isSaving: false,
+                bots: state.bots.map((bot: any) =>
+                    bot.id === action.payload.id ? { ...bot, ...action.payload } : bot
+                ),
+            };
+        case types.UPDATE_ADMIN_BOT_FAILURE:
+            return { ...state, isSaving: false, error: action.payload };
+
+        case types.DELETE_ADMIN_BOT_REQUEST:
+            return { ...state, isSaving: true, error: null };
+        case types.DELETE_ADMIN_BOT_SUCCESS:
+            return {
+                ...state,
+                isSaving: false,
+                bots: state.bots.filter((bot: any) => bot.id !== action.payload),
+            };
+        case types.DELETE_ADMIN_BOT_FAILURE:
+            return { ...state, isSaving: false, error: action.payload };
+
         default:
             return state;
     }
 };
 
 export default adminReducer;
+

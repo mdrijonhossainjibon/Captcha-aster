@@ -1,18 +1,32 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Outfit, Geist_Mono } from "next/font/google"
+import localFont from "next/font/local"
+import { Geist_Mono } from "next/font/google"
 
 import AuthProvider from "@/components/SessionProvider"
 import { StoreProvider } from "@/modules/StoreProvider"
 import "./globals.css"
 
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+// Outfit served locally — no Google Fonts network call
+const outfit = localFont({
+  src: [
+    { path: "../public/fonts/outfit-300.woff2", weight: "300", style: "normal" },
+    { path: "../public/fonts/outfit-400.woff2", weight: "400", style: "normal" },
+    { path: "../public/fonts/outfit-500.woff2", weight: "500", style: "normal" },
+    { path: "../public/fonts/outfit-600.woff2", weight: "600", style: "normal" },
+    { path: "../public/fonts/outfit-700.woff2", weight: "700", style: "normal" },
+    { path: "../public/fonts/outfit-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--font-outfit",
+  display: "swap",
 })
 
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const _geistMono = Geist_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  preload: false,
+  fallback: ["ui-monospace", "Consolas", "monospace"],
+})
 
 export const metadata: Metadata = {
   title: {

@@ -19,13 +19,30 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '20')
         const search = searchParams.get('search') || ''
 
+        // If search term is present, first find matching userIds by name/email
+        let userIdFilter: any = undefined
+        if (search) {
+            const matchingUsers = await User.find({
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                ]
+            }).select('_id').lean()
+
+            userIdFilter = matchingUsers.map((u: any) => u._id)
+        }
+
         const query: any = {}
         if (search) {
-            query.$or = [
+            const addressConditions: any[] = [
                 { address: { $regex: search, $options: 'i' } },
                 { cryptoId: { $regex: search, $options: 'i' } },
-                { networkId: { $regex: search, $options: 'i' } }
+                { networkId: { $regex: search, $options: 'i' } },
             ]
+            if (userIdFilter && userIdFilter.length > 0) {
+                addressConditions.push({ userId: { $in: userIdFilter } })
+            }
+            query.$or = addressConditions
         }
 
         const skip = (page - 1) * limit
@@ -77,6 +94,7 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
+
 export async function DELETE(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)

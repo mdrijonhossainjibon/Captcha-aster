@@ -58,3 +58,50 @@ export const deleteAdminUserFailure = (error: string) => ({
     type: types.DELETE_ADMIN_USER_FAILURE,
     payload: error,
 });
+
+// ── Bot Management ────────────────────────────────────────────────────────────
+
+export const fetchAdminBotsRequest = (payload?: any) => ({
+    type: types.FETCH_ADMIN_BOTS_REQUEST,
+    payload,
+});
+
+export const fetchAdminBotsSuccess = (payload: any) => ({
+    type: types.FETCH_ADMIN_BOTS_SUCCESS,
+    payload,
+});
+
+export const fetchAdminBotsFailure = (error: string) => ({
+    type: types.FETCH_ADMIN_BOTS_FAILURE,
+    payload: error,
+});
+
+export const updateAdminBotRequest = (payload: any) => ({
+    type: types.UPDATE_ADMIN_BOT_REQUEST,
+    payload,
+});
+
+export const updateAdminBotSuccess = (payload: any) => ({
+    type: types.UPDATE_ADMIN_BOT_SUCCESS,
+    payload,
+});
+
+export const updateAdminBotFailure = (error: string) => ({
+    type: types.UPDATE_ADMIN_BOT_FAILURE,
+    payload: error,
+});
+
+export const deleteAdminBotRequest = (payload: any) => ({
+    type: types.DELETE_ADMIN_BOT_REQUEST,
+    payload,
+});
+
+export const deleteAdminBotSuccess = (payload: any) => ({
+    type: types.DELETE_ADMIN_BOT_SUCCESS,
+    payload,
+});
+
+export const deleteAdminBotFailure = (error: string) => ({
+    type: types.DELETE_ADMIN_BOT_FAILURE,
+    payload: error,
+});

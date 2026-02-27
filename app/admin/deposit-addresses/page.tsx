@@ -3,25 +3,20 @@
 import { useEffect, useState } from "react"
 import {
     Search,
-    Wallet,
     Shield,
     Lock,
     Key,
-    ToggleLeft,
-    ToggleRight,
     RefreshCw,
     ExternalLink,
     Copy,
-    CheckCircle2,
     Loader2,
-    Eye,
-    EyeOff,
     Trash2,
     AlertTriangle,
     ArrowDownToLine,
     Zap,
-    AlertCircle as AlertIcon,
-    Plus
+    Plus,
+    Activity,
+    User as UserIcon,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -51,27 +46,38 @@ export default function AdminDepositAddresses() {
     const [page, setPage] = useState(1)
     const [total, setTotal] = useState(0)
     const [limit] = useState(20)
-    const [showKeyId, setShowKeyId] = useState<string | null>(null)
+
+    // Private key modal
     const [showKeyModal, setShowKeyModal] = useState(false)
     const [selectedKey, setSelectedKey] = useState<string>("")
+
+    // Row selection for sweep
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
     const [sweeping, setSweeping] = useState(false)
     const [sweepResults, setSweepResults] = useState<any[] | null>(null)
     const [showResultsModal, setShowResultsModal] = useState(false)
+
+    // Master wallet modal
     const [isMasterModalOpen, setIsMasterModalOpen] = useState(false)
     const [missingNetwork, setMissingNetwork] = useState<string>("")
     const [masterForm] = Form.useForm()
 
+    // Per-row on-chain balance loading { [id]: boolean }
+    const [rowBalanceLoading, setRowBalanceLoading] = useState<Record<string, boolean>>({})
+
+    // ── Fetch list ────────────────────────────────────────────────────
     const fetchAddresses = async () => {
         setLoading(true)
         try {
-            const res = await fetch(`/api/admin/deposit-addresses?page=${page}&limit=${limit}&search=${search}`)
+            const res = await fetch(
+                `/api/admin/deposit-addresses?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
+            )
             const result = await res.json()
             if (result.success) {
                 setAddresses(result.data)
                 setTotal(result.pagination.total)
             }
-        } catch (error) {
+        } catch {
             message.error("Failed to fetch addresses")
         } finally {
             setLoading(false)
@@ -80,11 +86,17 @@ export default function AdminDepositAddresses() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
+            setPage(1)
             fetchAddresses()
         }, 500)
         return () => clearTimeout(timer)
-    }, [search, page])
+    }, [search])
 
+    useEffect(() => {
+        fetchAddresses()
+    }, [page])
+
+    // ── Toggle status ─────────────────────────────────────────────────
     const toggleStatus = async (id: string, currentStatus: boolean) => {
         try {
             const res = await fetch('/api/admin/deposit-addresses', {
@@ -95,16 +107,16 @@ export default function AdminDepositAddresses() {
             const result = await res.json()
             if (result.success) {
                 message.success("Address status updated")
-                setAddresses(addresses.map(addr => addr._id === id ? { ...addr, isActive: !currentStatus } : addr))
+                setAddresses(prev => prev.map(a => a._id === id ? { ...a, isActive: !currentStatus } : a))
             }
-        } catch (error) {
+        } catch {
             message.error("Failed to update status")
         }
     }
 
+    // ── Sweep ─────────────────────────────────────────────────────────
     const handleSweep = async () => {
         if (selectedRowKeys.length === 0) return
-
         Modal.confirm({
             title: 'Withdraw funds from selected wallets?',
             icon: <ArrowDownToLine className="text-primary w-5 h-5 mr-2" />,
@@ -127,7 +139,7 @@ export default function AdminDepositAddresses() {
                     } else {
                         message.error(result.error)
                     }
-                } catch (error) {
+                } catch {
                     message.error("Failed to initiate withdrawal")
                 } finally {
                     setSweeping(false)
@@ -136,6 +148,7 @@ export default function AdminDepositAddresses() {
         })
     }
 
+    // ── Delete ────────────────────────────────────────────────────────
     const handleDelete = (id: string) => {
         Modal.confirm({
             title: 'Delete Deposit Address?',
@@ -146,36 +159,66 @@ export default function AdminDepositAddresses() {
             cancelText: 'Cancel',
             async onOk() {
                 try {
-                    const res = await fetch(`/api/admin/deposit-addresses?id=${id}`, {
-                        method: 'DELETE'
-                    })
+                    const res = await fetch(`/api/admin/deposit-addresses?id=${id}`, { method: 'DELETE' })
                     const result = await res.json()
                     if (result.success) {
                         message.success("Address deleted successfully")
-                        setAddresses(addresses.filter(addr => addr._id !== id))
+                        setAddresses(prev => prev.filter(a => a._id !== id))
                     } else {
                         message.error(result.error)
                     }
-                } catch (error) {
+                } catch {
                     message.error("Failed to delete address")
                 }
             }
         })
     }
 
+    // ── Clipboard ─────────────────────────────────────────────────────
     const copyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text)
         message.success(`${label} copied to clipboard`)
     }
 
+    // ── On-chain balance check (uses rpcUrl from DB CryptoConfig) ─────
+    const handleCheckBalance = async (record: DepositAddress) => {
+        setRowBalanceLoading(prev => ({ ...prev, [record._id]: true }))
+        try {
+            const res = await fetch('/api/admin/deposit-addresses/balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: record._id })
+            })
+            const result = await res.json()
+            if (result.success) {
+                message.success(
+                    `Live balance: ${result.balance.toFixed(6)} ${record.cryptoId.toUpperCase()}`
+                )
+                setAddresses(prev =>
+                    prev.map(a => a._id === record._id ? { ...a, lastBalance: result.balance } : a)
+                )
+            } else {
+                message.error(result.error || "Failed to fetch on-chain balance")
+            }
+        } catch (e: any) {
+            message.error(e.message || "RPC call failed")
+        } finally {
+            setRowBalanceLoading(prev => ({ ...prev, [record._id]: false }))
+        }
+    }
+
+    // ── Table columns ─────────────────────────────────────────────────
     const columns = [
         {
             title: 'User',
             key: 'user',
             render: (_: any, record: DepositAddress) => (
                 <div className="flex flex-col">
-                    <span className="font-bold text-sm text-foreground">{record.userId?.name || 'Unknown'}</span>
-                    <span className="text-xs text-muted-foreground">{record.userId?.email || 'N/A'}</span>
+                    <span className="font-bold text-sm text-foreground flex items-center gap-1">
+                        <UserIcon className="w-3 h-3 opacity-40 shrink-0" />
+                        {record.userId?.name || 'Unknown'}
+                    </span>
+                    <span className="text-xs text-muted-foreground pl-4">{record.userId?.email || 'N/A'}</span>
                 </div>
             )
         },
@@ -198,7 +241,8 @@ export default function AdminDepositAddresses() {
                         {record.address}
                     </code>
                     <Tooltip title="Copy Address">
-                        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={() => copyToClipboard(record.address, 'Address')}>
+                        <Button variant="ghost" size="icon" className="w-6 h-6"
+                            onClick={() => copyToClipboard(record.address, 'Address')}>
                             <Copy className="w-3 h-3" />
                         </Button>
                     </Tooltip>
@@ -209,12 +253,27 @@ export default function AdminDepositAddresses() {
             title: 'Current Balance',
             key: 'balance',
             render: (_: any, record: DepositAddress) => (
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                     <span className="font-bold text-sm text-primary">
-                        {record.lastBalance > 0 ? record.lastBalance.toFixed(6) : '0.00'}
+                        {record.lastBalance > 0 ? record.lastBalance.toFixed(6) : '0.000000'}
                         <span className="ml-1 text-[10px] uppercase opacity-70">{record.cryptoId}</span>
                     </span>
                     <span className="text-[10px] text-muted-foreground uppercase">{record.networkId}</span>
+                    {/* One-click on-chain balance refresh using DB rpcUrl */}
+                    <Tooltip title="Fetch live balance from blockchain (uses RPC URL saved in Crypto Settings)">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] text-primary gap-1 -ml-1 w-fit hover:bg-primary/10"
+                            onClick={() => handleCheckBalance(record)}
+                            disabled={rowBalanceLoading[record._id]}
+                        >
+                            {rowBalanceLoading[record._id]
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Activity className="w-3 h-3" />}
+                            {rowBalanceLoading[record._id] ? 'Checking…' : 'Check on-chain'}
+                        </Button>
+                    </Tooltip>
                 </div>
             )
         },
@@ -226,10 +285,7 @@ export default function AdminDepositAddresses() {
                     variant="outline"
                     size="sm"
                     className="h-8 border-destructive/20 text-destructive hover:bg-destructive/10 gap-2"
-                    onClick={() => {
-                        setSelectedKey(record.privateKey)
-                        setShowKeyModal(true)
-                    }}
+                    onClick={() => { setSelectedKey(record.privateKey); setShowKeyModal(true) }}
                 >
                     <Key className="w-3 h-3" />
                     Private Key
@@ -291,22 +347,29 @@ export default function AdminDepositAddresses() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
+
+            {/* ── Header ─────────────────────────────────────────────── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         <Shield className="w-8 h-8 text-primary" />
                         Deposit Address Management
                     </h1>
-                    <p className="text-muted-foreground mt-1">Monitor and manage user-specific cryptocurrency deposit wallets.</p>
+                    <p className="text-muted-foreground mt-1">
+                        Monitor and manage user-specific cryptocurrency deposit wallets.
+                    </p>
                 </div>
+
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
                         <Input
-                            placeholder="Search by address or ID..."
-                            className="pl-10 w-[250px] md:w-[350px] bg-card/50 border-border/50 h-10 rounded-xl"
+                            id="deposit-search"
+                            placeholder="Search by user, email, address or asset…"
+                            className="pl-10 w-[270px] md:w-[380px] bg-card/50 border-border/50 h-10 rounded-xl"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            allowClear
                         />
                     </div>
                     <Button variant="outline" size="icon" className="w-10 h-10 rounded-xl" onClick={fetchAddresses}>
@@ -315,13 +378,16 @@ export default function AdminDepositAddresses() {
                 </div>
             </div>
 
+            {/* ── Sweep banner ────────────────────────────────────────── */}
             <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-2xl border border-primary/10">
                 <div className="flex-1">
                     <h3 className="text-sm font-bold flex items-center gap-2">
                         <Zap className="w-4 h-4 text-primary" />
                         Wallet Automation Bot
                     </h3>
-                    <p className="text-xs text-muted-foreground italic">Sweep deposits from multiple wallets simultaneously. Ensure master addresses are set in Admin Wallets.</p>
+                    <p className="text-xs text-muted-foreground italic">
+                        Sweep deposits from multiple wallets simultaneously. Ensure master addresses are set in Admin Wallets.
+                    </p>
                 </div>
                 <Button
                     variant="default"
@@ -334,10 +400,16 @@ export default function AdminDepositAddresses() {
                 </Button>
             </div>
 
+            {/* ── Table ──────────────────────────────────────────────── */}
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm shadow-xl overflow-hidden">
                 <CardHeader>
                     <CardTitle>Generated Wallets</CardTitle>
-                    <CardDescription>Total of {total} unique user addresses generated.</CardDescription>
+                    <CardDescription>
+                        Total of {total} unique user addresses. Search supports name, email, address or asset.
+                        <span className="ml-2 text-primary text-[11px] font-medium">
+                            · On-chain balance uses RPC URL from Crypto Settings.
+                        </span>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table
@@ -348,6 +420,7 @@ export default function AdminDepositAddresses() {
                         loading={loading}
                         pagination={false}
                         className="admin-crypto-table"
+                        scroll={{ x: true }}
                     />
                     <div className="mt-6 flex justify-end">
                         <Pagination
@@ -362,6 +435,7 @@ export default function AdminDepositAddresses() {
                 </CardContent>
             </Card>
 
+            {/* ── Private Key Modal ───────────────────────────────────── */}
             <Modal
                 title={
                     <div className="flex items-center gap-2 text-destructive">
@@ -379,7 +453,8 @@ export default function AdminDepositAddresses() {
             >
                 <div className="space-y-4 py-4">
                     <p className="text-sm text-foreground font-medium">
-                        This is a highly sensitive <span className="text-destructive font-bold uppercase underline">Private Key</span>.
+                        This is a highly sensitive{' '}
+                        <span className="text-destructive font-bold uppercase underline">Private Key</span>.
                         Exposure of this key allows full control over the funds in this wallet.
                     </p>
                     <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 select-all font-mono text-xs break-all leading-relaxed">
@@ -392,6 +467,7 @@ export default function AdminDepositAddresses() {
                 </div>
             </Modal>
 
+            {/* ── Sweep Results Modal ─────────────────────────────────── */}
             <Modal
                 title="Withdrawal Bot Results"
                 open={showResultsModal}
@@ -405,8 +481,8 @@ export default function AdminDepositAddresses() {
                 <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
                     {sweepResults?.map((res, i) => (
                         <div key={i} className={`p-4 rounded-xl border ${res.status === 'success' ? 'bg-green-500/10 border-green-500/20' :
-                            res.status === 'need_gas' ? 'bg-yellow-500/10 border-yellow-500/20' :
-                                'bg-destructive/10 border-destructive/20'
+                                res.status === 'need_gas' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                                    'bg-destructive/10 border-destructive/20'
                             }`}>
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] font-mono opacity-60 truncate max-w-[200px]">{res.address}</span>
@@ -439,7 +515,11 @@ export default function AdminDepositAddresses() {
                             {res.status === 'need_gas' && (
                                 <div className="mt-2 p-2 bg-yellow-500/10 rounded-lg space-y-1">
                                     <p className="text-[10px] text-yellow-600 font-bold uppercase">Activation Required</p>
-                                    <p className="text-[10px]">Please fund this wallet with approximately <span className="font-bold underline">{res.requiredGas}</span> native coins to cover network fees + gas before sweeping.</p>
+                                    <p className="text-[10px]">
+                                        Please fund this wallet with approximately{' '}
+                                        <span className="font-bold underline">{res.requiredGas}</span>{' '}
+                                        native coins to cover network fees + gas before sweeping.
+                                    </p>
                                 </div>
                             )}
                             {res.txHash && (
@@ -456,6 +536,7 @@ export default function AdminDepositAddresses() {
                 </div>
             </Modal>
 
+            {/* ── Add Master Wallet Modal ─────────────────────────────── */}
             <Modal
                 title={`Add Master Wallet for ${missingNetwork.toUpperCase()}`}
                 open={isMasterModalOpen}
@@ -480,7 +561,7 @@ export default function AdminDepositAddresses() {
                             } else {
                                 message.error(result.error)
                             }
-                        } catch (error) {
+                        } catch {
                             message.error("Failed to add master wallet")
                         }
                     }}
@@ -503,11 +584,11 @@ export default function AdminDepositAddresses() {
                 </Form>
             </Modal>
 
-
         </div>
     )
 }
 
+// ── Inline SVG AlertCircle ────────────────────────────────────────────
 const AlertCircle = ({ className }: { className?: string }) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"

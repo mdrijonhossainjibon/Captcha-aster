@@ -98,9 +98,83 @@ function* deleteAdminUserSaga(action: any): Generator {
     }
 }
 
+function* fetchAdminBotsSaga(action: any): Generator {
+    try {
+        const { searchTerm, statusFilter, page, limit } = action.payload || {};
+        const params = new URLSearchParams();
+        if (searchTerm) params.append('search', searchTerm);
+        if (statusFilter) params.append('status', statusFilter);
+        if (page) params.append('page', page.toString());
+        if (limit) params.append('limit', limit.toString());
+
+        const { response, status }: APIResponse = yield call(API_CALL, {
+            method: 'GET',
+            url: `/admin/bots?${params.toString()}`
+        });
+
+        if (response && response.success) {
+            yield put(actions.fetchAdminBotsSuccess({ bots: response.bots, pagination: response.pagination }));
+        } else {
+            yield put(actions.fetchAdminBotsFailure(response?.error || 'Failed to fetch bots'));
+            message.error(response?.error || 'Failed to fetch bots');
+        }
+    } catch (error) {
+        yield put(actions.fetchAdminBotsFailure('Failed to fetch bots'));
+        message.error('Failed to fetch bots');
+    }
+}
+
+function* updateAdminBotSaga(action: any): Generator {
+    try {
+        const { botId, ...updateData } = action.payload;
+        const { response, status }: APIResponse = yield call(API_CALL, {
+            method: 'PATCH',
+            url: '/admin/bots',
+            body: { botId, ...updateData }
+        });
+
+        if (response && response.success) {
+            yield put(actions.updateAdminBotSuccess({ id: botId, ...updateData }));
+            message.success('Bot updated successfully');
+        } else {
+            yield put(actions.updateAdminBotFailure(response?.error || 'Failed to update bot'));
+            message.error(response?.error || 'Failed to update bot');
+        }
+    } catch (error) {
+        yield put(actions.updateAdminBotFailure('Failed to update bot'));
+        message.error('Failed to update bot');
+    }
+}
+
+function* deleteAdminBotSaga(action: any): Generator {
+    try {
+        const botId = action.payload;
+        const { response, status }: APIResponse = yield call(API_CALL, {
+            method: 'DELETE',
+            url: `/admin/bots?botId=${botId}`
+        });
+
+        if (response && response.success) {
+            yield put(actions.deleteAdminBotSuccess(botId));
+            message.success('Bot deleted successfully');
+        } else {
+            yield put(actions.deleteAdminBotFailure(response?.error || 'Failed to delete bot'));
+            message.error(response?.error || 'Failed to delete bot');
+        }
+    } catch (error) {
+        yield put(actions.deleteAdminBotFailure('Failed to delete bot'));
+        message.error('Failed to delete bot');
+    }
+}
+
 export default function* adminSaga() {
     yield takeLatest(types.FETCH_ADMIN_STATS_REQUEST, fetchAdminStatsSaga);
     yield takeLatest(types.FETCH_ADMIN_USERS_REQUEST, fetchAdminUsersSaga);
     yield takeLatest(types.UPDATE_ADMIN_USER_REQUEST, updateAdminUserSaga);
     yield takeLatest(types.DELETE_ADMIN_USER_REQUEST, deleteAdminUserSaga);
+    // Bots
+    yield takeLatest(types.FETCH_ADMIN_BOTS_REQUEST, fetchAdminBotsSaga);
+    yield takeLatest(types.UPDATE_ADMIN_BOT_REQUEST, updateAdminBotSaga);
+    yield takeLatest(types.DELETE_ADMIN_BOT_REQUEST, deleteAdminBotSaga);
 }
+
