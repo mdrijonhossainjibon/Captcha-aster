@@ -4,6 +4,7 @@ import localFont from "next/font/local"
 import { Geist_Mono } from "next/font/google"
 
 import AuthProvider from "@/components/SessionProvider"
+import { Toaster } from "@/components/ui/toaster"
 import { StoreProvider } from "@/modules/StoreProvider"
 import "./globals.css"
 
@@ -99,7 +100,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.className} antialiased text-[13.5px] leading-relaxed tracking-tight`}>
         <StoreProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </StoreProvider>
 
       </body>
