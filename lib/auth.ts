@@ -47,11 +47,11 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('No user found with this email')
                 }
 
-             const passwordMatch = await bcrypt.compare(credentials.password, user.password)
- 
-                 if (!passwordMatch) {
-                     throw new Error('Incorrect password')
-                 } 
+                const passwordMatch = await bcrypt.compare(credentials.password, user.password)
+
+                if (!passwordMatch) {
+                    throw new Error('Incorrect password')
+                }
 
 
 
@@ -104,25 +104,25 @@ export const authOptions: NextAuthOptions = {
 
                     existingUser = newUser.toObject()
 
-                  /*   // Create Free Trial Package for new OAuth users
-                    const trialEndDate = new Date()
-                    trialEndDate.setDate(trialEndDate.getDate() + 3) // 3 days validity
-
-                    await Package.create({
-                        userId: existingUser._id,
-                        packageCode: 'TRIAL',
-                        type: 'count',
-                        name: 'Free Trial',
-                        price: 0,
-                        billingCycle: 'monthly',
-                        credits: 100, // 100 count
-                        creditsUsed: 0,
-                        features: ['100 Free Requests', 'Trial Access', '3 Days Validity'],
-                        status: 'active',
-                        autoRenew: false,
-                        startDate: new Date(),
-                        endDate: trialEndDate,
-                    }) */
+                    /*   // Create Free Trial Package for new OAuth users
+                      const trialEndDate = new Date()
+                      trialEndDate.setDate(trialEndDate.getDate() + 3) // 3 days validity
+  
+                      await Package.create({
+                          userId: existingUser._id,
+                          packageCode: 'TRIAL',
+                          type: 'count',
+                          name: 'Free Trial',
+                          price: 0,
+                          billingCycle: 'monthly',
+                          credits: 100, // 100 count
+                          creditsUsed: 0,
+                          features: ['100 Free Requests', 'Trial Access', '3 Days Validity'],
+                          status: 'active',
+                          autoRenew: false,
+                          startDate: new Date(),
+                          endDate: trialEndDate,
+                      }) */
 
                     // Generate Default API Key
                     await ApiKey.create({
@@ -207,6 +207,7 @@ export const authOptions: NextAuthOptions = {
     },
     session: {
         strategy: 'jwt',
+        maxAge: 24 * 60 * 60, // 1 day
     },
     debug: false, // Enable debug mode to see detailed logs
     secret: process.env.NEXTAUTH_SECRET,
