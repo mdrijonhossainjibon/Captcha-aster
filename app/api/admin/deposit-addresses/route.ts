@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
 import DepositAddress from '@/lib/models/DepositAddress'
 import User from '@/lib/models/User'
+import { syncDepositAddressBalance } from '@/lib/crypto-balance'
 
 export async function GET(request: NextRequest) {
     try {
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '20')
         const search = searchParams.get('search') || ''
+        const shouldSync = searchParams.get('sync') === 'true'
 
         // If search term is present, first find matching userIds by name/email
         let userIdFilter: any = undefined
@@ -57,9 +59,22 @@ export async function GET(request: NextRequest) {
             DepositAddress.countDocuments(query)
         ])
 
+        // If sync is requested, update balances from blockchain
+        let finalAddresses = addresses
+        if (shouldSync && addresses.length > 0) {
+            // Sync in parallel (limited concurrency or just all at once if limit is small)
+            await Promise.all(addresses.map((addr: any) => syncDepositAddressBalance(addr._id.toString())))
+
+            // Re-fetch or update the existing objects to return fresh data
+            finalAddresses = await DepositAddress.find({ _id: { $in: addresses.map((a: any) => a._id) } })
+                .populate('userId', 'name email')
+                .sort({ createdAt: -1 })
+                .lean()
+        }
+
         return NextResponse.json({
             success: true,
-            data: addresses,
+            data: finalAddresses,
             pagination: {
                 total,
                 page,

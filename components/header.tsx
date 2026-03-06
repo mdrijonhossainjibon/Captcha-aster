@@ -26,10 +26,19 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
 
   const isAdmin = session?.user?.role === "admin"
 
-  const extensions = [
-    { label: "Chrome Extension", href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-chrome.zip", icon: Download, description: "Browser extension for Chrome" },
-    { label: "Firefox Add-on", href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-firefox.zip", icon: Download, description: "Browser extension for Firefox" },
-  ]
+  const [extensions, setExtensions] = useState<any[]>([])
+
+  const fetchExtensions = async () => {
+    try {
+      const response = await fetch('/api/admin/extensions?activeOnly=true')
+      const data = await response.json()
+      if (data.success) {
+        setExtensions(data.extensions || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch extensions:", err)
+    }
+  }
 
   const fetchBalance = async () => {
     try {
@@ -48,10 +57,15 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
 
   useEffect(() => {
     fetchBalance()
+    fetchExtensions()
     // Optional: set up interval to refresh balance every 30s
-    const interval = setInterval(fetchBalance, 30000)
+    const interval = setInterval(() => {
+      fetchBalance()
+      fetchExtensions()
+    }, 30000)
     return () => clearInterval(interval)
   }, [])
+
 
   return (
     <header className="w-full border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-50">
@@ -93,20 +107,28 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                   <div className="p-2 border-b border-border/50 bg-secondary/20 font-semibold text-[10px] text-muted-foreground uppercase tracking-wider">
                     Available Extensions
                   </div>
+                  {extensions.length === 0 && (
+                    <div className="p-4 text-center text-xs text-muted-foreground">
+                      No extensions available
+                    </div>
+                  )}
                   {extensions.map((extension) => {
-                    const Icon = extension.icon
                     return (
                       <Link
-                        key={extension.label}
-                        href={extension.href}
+                        key={extension._id}
+                        href={extension.downloadUrl}
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
                       >
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Icon className="w-4 h-4 text-primary" />
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {extension.iconUrl ? (
+                            <img src={extension.iconUrl} alt={extension.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Download className="w-4 h-4 text-primary" />
+                          )}
                         </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-foreground">{extension.label}</p>
-                          <p className="text-xs text-muted-foreground">{extension.description}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{extension.name}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">v{extension.version} • {extension.platform}</p>
                         </div>
                       </Link>
                     )

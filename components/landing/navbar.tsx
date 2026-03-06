@@ -36,25 +36,6 @@ const navLinks = [
   { href: "/api-docs", label: "API Docs", icon: FileCode },
 ]
 
-const extensionLinks = [
-  {
-    href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-firefox.zip",
-    label: "Firefox Extension",
-    icon: (className: string) => (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-        <path d="M12 8a2.5 2.5 0 0 1 2 4.5" />
-        <path d="m8.5 13 3.5 3.5 3.5-3.5" />
-      </svg>
-    )
-  },
-  {
-    href: "https://github.com/rk643264321/Captcha-aster-Extension/raw/refs/heads/main/captchamaster-1.0.1-chrome.zip",
-    label: "Chrome Extension",
-    icon: (className: string) => <Chrome className={className} />
-  },
-]
-
 const dashboardLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/activities", label: "Activities", icon: Zap },
@@ -69,10 +50,23 @@ export function Navbar() {
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false)
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(false)
+  const [extensions, setExtensions] = useState<any[]>([])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const accountRef = useRef<HTMLDivElement>(null)
   const { data: session, status } = useSession();
+
+  const fetchExtensions = async () => {
+    try {
+      const response = await fetch('/api/admin/extensions?activeOnly=true')
+      const data = await response.json()
+      if (data.success) {
+        setExtensions(data.extensions || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch extensions:", err)
+    }
+  }
 
   const fetchBalance = async () => {
     if (status !== "authenticated") return
@@ -91,11 +85,15 @@ export function Navbar() {
   }
 
   useEffect(() => {
+    fetchExtensions()
     if (status === "authenticated") {
       fetchBalance()
-      const interval = setInterval(fetchBalance, 30000)
-      return () => clearInterval(interval)
     }
+    const interval = setInterval(() => {
+      fetchExtensions()
+      if (status === "authenticated") fetchBalance()
+    }, 30000)
+    return () => clearInterval(interval)
   }, [status])
 
   // Handle click outside to close dropdowns
@@ -176,15 +174,27 @@ export function Navbar() {
               </button>
 
               {extensionDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-background/95 backdrop-blur-lg border border-border rounded-lg shadow-lg overflow-hidden py-1">
-                  {extensionLinks.map((link) => (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-background/95 backdrop-blur-lg border border-border rounded-lg shadow-lg overflow-hidden py-1">
+                  {extensions.length === 0 && (
+                    <div className="px-4 py-3 text-xs text-muted-foreground">No extensions available</div>
+                  )}
+                  {extensions.map((ext) => (
                     <Link
-                      key={link.label}
-                      href={link.href}
+                      key={ext._id}
+                      href={ext.downloadUrl}
                       className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
-                      {link.icon("w-5 h-5 text-primary")}
-                      <span>{link.label}</span>
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {ext.iconUrl ? (
+                          <img src={ext.iconUrl} alt={ext.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Puzzle className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{ext.name}</p>
+                        <p className="text-[10px] opacity-70">v{ext.version} • {ext.platform}</p>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -426,15 +436,21 @@ export function Navbar() {
 
                 {extensionDropdownOpen && (
                   <div className="pl-11 mt-1 flex flex-col gap-1.5 animate-in fade-in slide-in-from-left-2 duration-300">
-                    {extensionLinks.map((link) => (
+                    {extensions.map((ext) => (
                       <Link
-                        key={link.label}
-                        href={link.href}
+                        key={ext._id}
+                        href={ext.downloadUrl}
                         className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-2.5 px-3 rounded-lg hover:bg-accent/50"
                         onClick={() => setIsOpen(false)}
                       >
-                        {link.icon("w-5 h-5 text-primary/60")}
-                        <span className="text-sm font-medium">{link.label}</span>
+                        <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {ext.iconUrl ? (
+                            <img src={ext.iconUrl} alt={ext.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Puzzle className="w-4 h-4 text-primary/60" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium">{ext.name}</span>
                       </Link>
                     ))}
                   </div>

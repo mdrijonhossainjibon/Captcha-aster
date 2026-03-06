@@ -53,7 +53,7 @@ const mainNavItems = [
 const managementItems = [
   { href: "/admin/packages", label: "Packages", icon: Package },
   { href: "/admin/extensions", label: "Extensions", icon: Puzzle },
-  { href: "/admin/bots", label: "Bot Management", icon: Bot },
+
   { href: "/admin/solutions", label: "Solution Cache", icon: Database },
   { href: "/admin/wallet", label: "Wallet", icon: Wallet },
   { href: "/admin/deposit-addresses", label: "Deposit Wallets", icon: Shield },

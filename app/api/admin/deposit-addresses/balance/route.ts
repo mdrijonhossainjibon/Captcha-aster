@@ -2,15 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
-import DepositAddress from '@/lib/models/DepositAddress'
-import CryptoConfig from '@/lib/models/CryptoConfig'
-import {
-    getERC20Balance,
-    getERC20Decimals,
-    formatTokenBalance,
-    getNativeBalance,
-    formatNativeBalance,
-} from 'auth-fingerprint'
+import { syncDepositAddressBalance } from '@/lib/crypto-balance'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/admin/deposit-addresses/balance
@@ -38,89 +30,21 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: 'id is required' }, { status: 400 })
         }
 
-        // 1. Load the deposit address record
-        const depositAddress = await DepositAddress.findById(id).lean()
-        if (!depositAddress) {
-            return NextResponse.json(
-                { success: false, error: 'Deposit address not found' },
-                { status: 404 }
-            )
-        }
+        const updatedAddress = await syncDepositAddressBalance(id)
 
-        // 2. Find matching CryptoConfig to get rpcUrl + tokenAddress
-        const crypto = await CryptoConfig.findOne({ id: depositAddress.cryptoId }).lean()
-        if (!crypto) {
+        if (!updatedAddress) {
             return NextResponse.json(
-                { success: false, error: `No CryptoConfig found for "${depositAddress.cryptoId}"` },
-                { status: 404 }
-            )
-        }
-
-        const network = (crypto.networks as any[]).find(n => n.id === depositAddress.networkId)
-        if (!network) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: `Network "${depositAddress.networkId}" not found in CryptoConfig for "${depositAddress.cryptoId}"`,
-                },
-                { status: 404 }
-            )
-        }
-
-        if (!network.rpcUrl) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: `No RPC URL configured for network "${depositAddress.networkId}". Please set it in Crypto Settings → Networks.`,
-                },
+                { success: false, error: 'Failed to sync balance. Ensure RPC URL is correct.' },
                 { status: 422 }
             )
         }
 
-        const { rpcUrl, address } = network
-        const walletAddress = depositAddress.address
-
-        let balance: number
-        let balanceFormatted: string
-        let type: 'token' | 'native'
-
-        console.log(network)
-
-        if (address) {
-            // ── ERC-20 token (USDT, USDC, BUSD, etc.) ─────────────────────
-            type = 'token'
-
-            const [rawHex, decimals] = await Promise.all([
-                getERC20Balance(rpcUrl, address, walletAddress),
-                getERC20Decimals(rpcUrl, address),
-            ])
-
-            balanceFormatted = formatTokenBalance(rawHex, decimals)
-            balance = parseFloat(balanceFormatted)
-        } else {
-            // ── Native coin (ETH, BNB, MATIC, AVAX, etc.) ─────────────────
-            type = 'native'
-
-            const rawHex = await getNativeBalance(rpcUrl, walletAddress)
-            balanceFormatted = formatNativeBalance(rawHex)
-            balance = parseFloat(balanceFormatted)
-        }
-
-        // 3. Persist updated balance to DB
-        await DepositAddress.findByIdAndUpdate(id, {
-            lastBalance: balance,
-            lastUsedAt: new Date(),
-        })
-
         return NextResponse.json({
             success: true,
-            balance,
-            balanceFormatted,
-            type,
-            tokenAddress: address ?? null,
-            address: walletAddress,
-            network: depositAddress.networkId,
-            crypto: depositAddress.cryptoId,
+            balance: updatedAddress.lastBalance,
+            address: updatedAddress.address,
+            network: updatedAddress.networkId,
+            crypto: updatedAddress.cryptoId,
         })
     } catch (error: any) {
         console.error('[balance/route] Error:', error)

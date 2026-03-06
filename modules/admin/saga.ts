@@ -1,4 +1,4 @@
-import { call, put, takeLatest } from 'redux-saga/effects';
+import { call, put, takeLatest, all } from 'redux-saga/effects';
 import * as types from './constants';
 import * as actions from './actions';
 import { API_CALL, APIResponse } from 'auth-fingerprint';
@@ -167,6 +167,73 @@ function* deleteAdminBotSaga(action: any): Generator {
     }
 }
 
+function* fetchAdminWalletsSaga(): Generator {
+    try {
+        const { response, status }: APIResponse = yield call(API_CALL, {
+            method: 'GET',
+            url: '/admin/wallet'
+        });
+
+        if (response && response.success) {
+            yield put(actions.fetchAdminWalletsSuccess(response.wallets));
+        } else {
+            yield put(actions.fetchAdminWalletsFailure(response?.error || 'Failed to fetch wallets'));
+        }
+    } catch (error) {
+        yield put(actions.fetchAdminWalletsFailure('Failed to fetch admin wallets'));
+    }
+}
+
+function* createAdminWalletSaga(action: any): Generator {
+    try {
+        const walletEntries = Array.isArray(action.payload) ? action.payload : [action.payload];
+
+        const results: any[] = yield all(walletEntries.map((entry: any) =>
+            call(API_CALL, {
+                method: 'POST',
+                url: '/admin/wallet',
+                body: entry
+            })
+        ));
+
+        const successCount = results.filter(r => r.response && r.response.success).length;
+
+        if (successCount > 0) {
+            yield put(actions.createAdminWalletSuccess(results));
+            message.success(`Created ${successCount} wallet entries`);
+            yield put(actions.fetchAdminWalletsRequest());
+        } else {
+            yield put(actions.createAdminWalletFailure('Failed to create wallet entries'));
+            message.error('Failed to create wallet entries');
+        }
+    } catch (error) {
+        yield put(actions.createAdminWalletFailure('Error saving wallets'));
+        message.error('Error saving wallets');
+    }
+}
+
+function* deleteAdminWalletSaga(action: any): Generator {
+    try {
+        const id = action.payload;
+        const { response }: APIResponse = yield call(API_CALL, {
+            method: 'DELETE',
+            url: `/admin/wallet?id=${id}`
+        });
+
+        if (response && response.success) {
+            yield put(actions.deleteAdminWalletSuccess(id));
+            message.success('Wallet deleted');
+            yield put(actions.fetchAdminWalletsRequest());
+        } else {
+            yield put(actions.deleteAdminWalletFailure(response?.error || 'Failed to delete'));
+            message.error(response?.error || 'Failed to delete');
+        }
+    } catch (error) {
+        yield put(actions.deleteAdminWalletFailure('Error deleting wallet'));
+        message.error('Error deleting wallet');
+    }
+}
+
 export default function* adminSaga() {
     yield takeLatest(types.FETCH_ADMIN_STATS_REQUEST, fetchAdminStatsSaga);
     yield takeLatest(types.FETCH_ADMIN_USERS_REQUEST, fetchAdminUsersSaga);
@@ -176,5 +243,9 @@ export default function* adminSaga() {
     yield takeLatest(types.FETCH_ADMIN_BOTS_REQUEST, fetchAdminBotsSaga);
     yield takeLatest(types.UPDATE_ADMIN_BOT_REQUEST, updateAdminBotSaga);
     yield takeLatest(types.DELETE_ADMIN_BOT_REQUEST, deleteAdminBotSaga);
+    // Wallets
+    yield takeLatest(types.FETCH_ADMIN_WALLETS_REQUEST, fetchAdminWalletsSaga);
+    yield takeLatest(types.CREATE_ADMIN_WALLET_REQUEST, createAdminWalletSaga);
+    yield takeLatest(types.DELETE_ADMIN_WALLET_REQUEST, deleteAdminWalletSaga);
 }
 
