@@ -148,7 +148,6 @@ export async function POST(request: NextRequest) {
                     );
                 } else {
                     const amountToSendWei = balanceWei - estimatedGasCost
-
  
 
                     if (amountToSendWei <= BigInt(0)) {
