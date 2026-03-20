@@ -11,6 +11,7 @@ export interface Solution {
     solution: any
     imageData: string[]
     examples: string[]
+    classNames: string[]
     createdAt: string
 }
 

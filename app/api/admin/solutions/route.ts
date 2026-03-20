@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
                 solution: s.solution,
                 imageData: s.imageData || [],
                 examples: s.examples || [],
+                classNames: s.classNames || [],
                 createdAt: s.createdAt,
             })),
 

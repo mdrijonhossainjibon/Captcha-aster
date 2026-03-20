@@ -127,7 +127,7 @@ export function ImageViewModal({
                             {images.length === 0 ? (
                                 <EmptyImages />
                             ) : isGridType && images.length > 1 ? (
-                                <ClassifyGrid images={images} solutionArr={solutionArr} />
+                                <ClassifyGrid images={images} solutionArr={solutionArr} classNames={solution.classNames} />
                             ) : (
                                 <CarouselView images={images} activeIdx={activeIdx} setActiveIdx={setActiveIdx} />
                             )}
@@ -251,12 +251,21 @@ function EmptyImages() {
     )
 }
 
-function ClassifyGrid({ images, solutionArr }: { images: string[], solutionArr: boolean[] }) {
+function ClassifyGrid({ images, solutionArr, classNames }: { 
+    images: string[], 
+    solutionArr: boolean[], 
+    classNames?: string[] 
+}) {
     return (
         <div>
             <p className="text-xs text-muted-foreground mb-2">
                 Grid — {images.length} tiles ·&nbsp;
                 <span className="text-green-600 font-semibold">{solutionArr.filter(Boolean).length} selected</span>
+                {classNames && classNames.length > 0 && (
+                    <span className="ml-2 text-blue-600 font-semibold">
+                        {classNames.length} classes
+                    </span>
+                )}
             </p>
             <div className={`grid gap-1.5 ${images.length === 9 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 {images.map((img, i) => (
@@ -274,10 +283,27 @@ function ClassifyGrid({ images, solutionArr }: { images: string[], solutionArr: 
                         )}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/55 to-transparent p-1">
                             <span className="text-white text-[10px] font-bold">#{i + 1}</span>
+                            {classNames && classNames[i] && (
+                                <span className="text-white text-[9px] ml-1 bg-blue-500/60 px-1 rounded">
+                                    {classNames[i]}
+                                </span>
+                            )}
                         </div>
                     </div>
                 ))}
             </div>
+            {classNames && classNames.length > 0 && (
+                <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wider mb-1">Detected Classes</p>
+                    <div className="flex flex-wrap gap-1">
+                        {classNames.map((className, i) => (
+                            <span key={i} className="text-xs bg-blue-500/20 text-blue-700 px-1.5 py-0.5 rounded">
+                                {className || `Tile ${i + 1}`}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

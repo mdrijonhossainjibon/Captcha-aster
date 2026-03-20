@@ -3,14 +3,14 @@ import mongoose, { Document, Schema } from 'mongoose'
 export interface ISolution extends Document {
     hash: string
     question: string
-    type: string
-    service: string
+    type: 'objectClassify' | 'objectClick' | 'objectDrag' | 'objectTag' | 'grid' | 'unknown'
+    service: 'hcaptcha' | 'awswaf' | 'recaptcha' | 'unknown'
     solution: any
     imageData?: string[]    // base64 captcha tile images
     examples?: string[]     // base64 reference/example images
+    classNames?: string[]   // detected object class names
     apiKeyId?: mongoose.Types.ObjectId
     userId?: mongoose.Types.ObjectId
-    createdAt: Date
 }
 
 
@@ -51,6 +51,10 @@ const SolutionSchema: Schema<ISolution> = new Schema(
             type: [String],   // reference/example images for fit/reference challenges
             default: [],
         },
+        classNames: {
+            type: [String],   // detected object class names
+            default: [],
+        },
         apiKeyId: {
             type: Schema.Types.ObjectId,
             ref: 'ApiKey',
@@ -67,9 +71,7 @@ const SolutionSchema: Schema<ISolution> = new Schema(
         timestamps: true,
     }
 )
-
-// TTL: auto-delete solutions older than 24 hours (86400 seconds)
-SolutionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 })
+ 
 
 // Compound index for faster admin queries
 SolutionSchema.index({ service: 1, type: 1, createdAt: -1 })
