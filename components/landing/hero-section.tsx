@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Play, ArrowRight, Shield, Zap, Clock } from "lucide-react"
 import Link from "next/link"
 
+
 export function HeroSection() {
   const [isVisible, setIsVisible] = useState(false)
   const [count, setCount] = useState(0)
@@ -18,7 +19,7 @@ export function HeroSection() {
     return () => clearInterval(interval)
   }, [])
 
-  return (
+   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
@@ -181,5 +182,6 @@ export function HeroSection() {
         </div>
       </div>
     </section>
-  )
+
+   )
 }

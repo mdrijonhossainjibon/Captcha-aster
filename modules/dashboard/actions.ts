@@ -103,4 +103,18 @@ export const updateUserBalance = (amountUSD: number) => ({
     payload: amountUSD,
 });
 
+export const fetchExtensionsRequest = () => ({
+    type: types.FETCH_EXTENSIONS_REQUEST,
+});
+
+export const fetchExtensionsSuccess = (payload: any[]) => ({
+    type: types.FETCH_EXTENSIONS_SUCCESS,
+    payload,
+});
+
+export const fetchExtensionsFailure = (error: string) => ({
+    type: types.FETCH_EXTENSIONS_FAILURE,
+    payload: error,
+});
+
 

@@ -100,10 +100,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.className} antialiased text-[13.5px] leading-relaxed tracking-tight`}>
         <StoreProvider>
-          <AuthProvider>
-            {children}
+ <AuthProvider>
+  {children}
             <Toaster />
-          </AuthProvider>
+ </AuthProvider>
+            
+ 
         </StoreProvider>
 
       </body>

@@ -133,6 +133,7 @@ export default function AdminSolutionsContent() {
                     solutionCount={solutions.length}
                     onPrev={() => setCurrentPage(p => Math.max(1, p - 1))}
                     onNext={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                    onPageChange={setCurrentPage}
                 />
             )}
 

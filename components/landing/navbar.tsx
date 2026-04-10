@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useSelector, useDispatch } from "react-redux"
 import { Button } from "@/components/ui/button"
 import {
   Menu,
@@ -28,6 +29,17 @@ import {
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
+import { RootState } from "@/modules/rootReducer"
+import * as dashboardActions from "@/modules/dashboard/actions"
+
+interface Extension {
+  _id: string
+  name: string
+  version: string
+  platform: string
+  downloadUrl: string
+  iconUrl?: string
+}
 
 const navLinks = [
   { href: "/features", label: "Features", icon: Zap },
@@ -48,53 +60,34 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [extensionDropdownOpen, setExtensionDropdownOpen] = useState(false)
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false)
-  const [balance, setBalance] = useState<number>(0)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false)
-  const [extensions, setExtensions] = useState<any[]>([])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const accountRef = useRef<HTMLDivElement>(null)
   const { data: session, status } = useSession();
+  const dispatch = useDispatch()
 
-  const fetchExtensions = async () => {
-    try {
-      const response = await fetch('/api/admin/extensions?activeOnly=true')
-      const data = await response.json()
-      if (data.success) {
-        setExtensions(data.extensions || [])
-      }
-    } catch (err) {
-      console.error("Failed to fetch extensions:", err)
-    }
-  }
+  // Redux state
+  const extensions = useSelector((state: RootState) => state.dashboard.extensions as Extension[])
+  const extensionsLoading = useSelector((state: RootState) => state.dashboard.extensionsLoading)
+  const userData = useSelector((state: RootState) => state.dashboard.userData)
+  const dashboardLoading = useSelector((state: RootState) => state.dashboard.loading)
 
-  const fetchBalance = async () => {
-    if (status !== "authenticated") return
-    try {
-      setIsLoadingBalance(true)
-      const response = await fetch('/api/dashboard/stats')
-      const data = await response.json()
-      if (data.success && data.user) {
-        setBalance(data.user.balance || 0)
-      }
-    } catch (err) {
-      console.error("Failed to fetch balance:", err)
-    } finally {
-      setIsLoadingBalance(false)
-    }
-  }
+  const balance = userData?.balance || 0
+  const isLoadingBalance = dashboardLoading && !userData
 
   useEffect(() => {
-    fetchExtensions()
+    dispatch(dashboardActions.fetchExtensionsRequest())
     if (status === "authenticated") {
-      fetchBalance()
+      dispatch(dashboardActions.fetchDashboardDataRequest())
     }
     const interval = setInterval(() => {
-      fetchExtensions()
-      if (status === "authenticated") fetchBalance()
+      dispatch(dashboardActions.fetchExtensionsRequest())
+      if (status === "authenticated") {
+        dispatch(dashboardActions.fetchDashboardDataRequest())
+      }
     }, 30000)
     return () => clearInterval(interval)
-  }, [status])
+  }, [status, dispatch])
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -175,8 +168,14 @@ export function Navbar() {
 
               {extensionDropdownOpen && (
                 <div className="absolute top-full left-0 mt-2 w-64 bg-background/95 backdrop-blur-lg border border-border rounded-lg shadow-lg overflow-hidden py-1">
-                  {extensions.length === 0 && (
+                  {extensions.length === 0 && !extensionsLoading && (
                     <div className="px-4 py-3 text-xs text-muted-foreground">No extensions available</div>
+                  )}
+                  {extensionsLoading && (
+                    <div className="px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading...
+                    </div>
                   )}
                   {extensions.map((ext) => (
                     <Link
@@ -210,7 +209,7 @@ export function Navbar() {
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
                   <Wallet className="w-4 h-4 text-primary" />
                   <div className="flex items-baseline gap-1">
-                    {isLoadingBalance && balance === 0 ? (
+                    {isLoadingBalance ? (
                       <Loader2 className="w-3 h-3 animate-spin text-primary" />
                     ) : (
                       <span className="text-sm font-bold text-foreground">${balance.toFixed(4)}</span>

@@ -202,8 +202,8 @@ export const authOptions: NextAuthOptions = {
 
 
     pages: {
-        signIn: '/auth/login',
-        error: '/auth/login', // Redirect to login on error
+        signIn: '/auth/login/paa',
+        error: '/auth/login/pppa', // Redirect to login on error
     },
     session: {
         strategy: 'jwt',

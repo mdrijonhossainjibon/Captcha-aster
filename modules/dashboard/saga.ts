@@ -136,6 +136,23 @@ function* fetchActivitiesSaga(): Generator {
     }
 }
 
+function* fetchExtensionsSaga(): Generator {
+    try {
+        const { response, status }: APIResponse = yield (call as any)(API_CALL, {
+            method: 'GET',
+            url: '/admin/extensions?activeOnly=true'
+        });
+
+        if (status === 200 && response.success) {
+            yield put(actions.fetchExtensionsSuccess(response.extensions || []));
+        } else {
+            yield put(actions.fetchExtensionsFailure(response?.error || 'Failed to fetch extensions'));
+        }
+    } catch (error: any) {
+        yield put(actions.fetchExtensionsFailure(error.message || 'An error occurred'));
+    }
+}
+
 export default function* dashboardSaga() {
     yield all([
         takeLatest(types.FETCH_DASHBOARD_DATA_REQUEST, fetchDashboardDataSaga),
@@ -145,5 +162,6 @@ export default function* dashboardSaga() {
         takeLatest(types.TOGGLE_AUTO_RENEW_REQUEST, toggleAutoRenewSaga),
         takeLatest(types.CANCEL_PACKAGE_REQUEST, cancelPackageSaga),
         takeLatest(types.FETCH_ACTIVITIES_REQUEST, fetchActivitiesSaga),
+        takeLatest(types.FETCH_EXTENSIONS_REQUEST, fetchExtensionsSaga),
     ]);
 }

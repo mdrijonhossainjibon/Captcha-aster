@@ -6,6 +6,9 @@ import { Clock, RefreshCw, AlertTriangle, Bell, User, MoreVertical, Puzzle, Arro
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { signOut, useSession } from "next-auth/react"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchDashboardDataRequest, fetchExtensionsRequest } from "@/modules/dashboard/actions"
+import { IExtension } from "@/lib/models/Extension"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,50 +24,27 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps = {}) {
   const { data: session } = useSession()
-  const [balance, setBalance] = useState<number>(0.00)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+  const dispatch = useDispatch()
+  
+  const { userData, loading: isLoadingBalance, extensions } = useSelector((state: any) => state.dashboard)
+  const balance = userData?.balance || 0
 
   const isAdmin = session?.user?.role === "admin"
 
-  const [extensions, setExtensions] = useState<any[]>([])
-
-  const fetchExtensions = async () => {
-    try {
-      const response = await fetch('/api/admin/extensions?activeOnly=true')
-      const data = await response.json()
-      if (data.success) {
-        setExtensions(data.extensions || [])
-      }
-    } catch (err) {
-      console.error("Failed to fetch extensions:", err)
-    }
-  }
-
-  const fetchBalance = async () => {
-    try {
-      setIsLoadingBalance(true)
-      const response = await fetch('/api/dashboard/stats')
-      const data = await response.json()
-      if (data.success && data.user) {
-        setBalance(data.user.balance || 0)
-      }
-    } catch (err) {
-      console.error("Failed to fetch balance:", err)
-    } finally {
-      setIsLoadingBalance(false)
-    }
-  }
-
   useEffect(() => {
-    fetchBalance()
-    fetchExtensions()
+    if (session) {
+      dispatch(fetchDashboardDataRequest())
+      dispatch(fetchExtensionsRequest())
+    }
     // Optional: set up interval to refresh balance every 30s
     const interval = setInterval(() => {
-      fetchBalance()
-      fetchExtensions()
+      if (session) {
+        dispatch(fetchDashboardDataRequest())
+        dispatch(fetchExtensionsRequest())
+      }
     }, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [session, dispatch])
 
 
   return (
@@ -112,10 +92,10 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                       No extensions available
                     </div>
                   )}
-                  {extensions.map((extension) => {
+                  {extensions.map((extension: IExtension) => {
                     return (
                       <Link
-                        key={extension._id}
+                        key={extension._id.toString()}
                         href={extension.downloadUrl}
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
                       >

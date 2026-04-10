@@ -12,6 +12,9 @@ const initialState: any = {
     activities: [],
     activitiesLoading: false,
     activitiesError: null,
+    extensions: [],
+    extensionsLoading: false,
+    extensionsError: null,
 };
 
 const dashboardReducer = (state = initialState, action: any) => {
@@ -140,6 +143,24 @@ const dashboardReducer = (state = initialState, action: any) => {
                 } : null
             };
 
+        case types.FETCH_EXTENSIONS_REQUEST:
+            return {
+                ...state,
+                extensionsLoading: true,
+                extensionsError: null,
+            };
+        case types.FETCH_EXTENSIONS_SUCCESS:
+            return {
+                ...state,
+                extensionsLoading: false,
+                extensions: action.payload,
+            };
+        case types.FETCH_EXTENSIONS_FAILURE:
+            return {
+                ...state,
+                extensionsLoading: false,
+                extensionsError: action.payload,
+            };
 
         default:
             return state;
