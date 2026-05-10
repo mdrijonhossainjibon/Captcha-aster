@@ -4,7 +4,8 @@ import User from '@/lib/models/User'
 import Package from '@/lib/models/Package'
 import ApiKey from '@/lib/models/ApiKey'
 import OTP from '@/lib/models/OTP'
-import { generateOTP, sendOTPEmail } from '@/lib/email'
+import { generateOTP, sendOTPEmail } from '@/services/email'
+import { createToken, setAuthCookie } from '@/services/jwt'
 
 export async function POST(request: NextRequest) {
     try {
@@ -41,13 +42,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 })
         }
 
-        // Validate Gmail only
         const emailLower = email.toLowerCase()
-    /*     if (!emailLower.endsWith('@gmail.com')) {
-            return NextResponse.json({
-                error: 'Only Gmail addresses are allowed for registration',
-            }, { status: 400 })
-        } */
 
         // Check if user already exists
         const existingUser = await User.findOne({ email: emailLower })
@@ -64,32 +59,12 @@ export async function POST(request: NextRequest) {
             name,
             email: emailLower,
             password,
-            twoFactorEnabled: false, // Enable 2FA for all new signups
+            twoFactorEnabled: false,
             balance: 0,
-            isActive: true, // User is active immediately (OTP disabled)
+            isActive: true,
             role: 'user',
             lastLoginIp: currentIp,
         })
-
-        // Create Free Trial Package
-        const trialEndDate = new Date()
-        trialEndDate.setDate(trialEndDate.getDate() + 3) // 3 days validity
-/* 
-        await Package.create({
-            userId: user._id,
-            packageCode: 'TRIAL',
-            type: 'count', // As requested: count based
-            name: 'Free Trial',
-            price: 0,
-            billingCycle: 'monthly',
-            credits: 100, // 100 count
-            creditsUsed: 0,
-            features: ['100 Free Requests', 'Trial Access', '3 Days Validity'],
-            status: 'active',
-            autoRenew: false,
-            startDate: new Date(),
-            endDate: trialEndDate,
-        }) */
 
         // Generate Default API Key
         await ApiKey.create({
@@ -99,32 +74,15 @@ export async function POST(request: NextRequest) {
             status: 'active',
         })
 
-        /*
-        // Generate OTP for email verification
-        const otpCode = generateOTP()
-
-        // Delete any existing OTPs for this email
-        await OTP.deleteMany({ email: user.email })
-
-        // Save new OTP
-        await OTP.create({
+        // Generate JWT token and set cookie
+        const token = await createToken({
+            userId: user._id.toString(),
             email: user.email,
-            otp: otpCode,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+            role: user.role || 'user',
+            balance: user.balance,
         })
 
-        // Send OTP email
-        const emailSent = await sendOTPEmail({
-            email: user.email,
-            otp: otpCode,
-            name: user.name,
-        })
-
-        if (!emailSent) {
-            console.warn('⚠️  OTP email failed to send, but continuing...')
-        }
-        */
-
+        await setAuthCookie(token)
 
         return NextResponse.json({
             success: true,

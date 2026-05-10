@@ -18,12 +18,12 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/components/AuthProvider"
 
 export default function ReferralsPage() {
-    const { data: session } = useSession()
+    const { user } = useAuth()
     const [copied, setCopied] = useState(false)
-    const referralCode = session?.user?.email?.split('@')[0] || "USER_CODE"
+    const referralCode = user?.email?.split('@')[0] || "USER_CODE"
     const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/signup?ref=${referralCode}`
 
     const handleCopy = () => {

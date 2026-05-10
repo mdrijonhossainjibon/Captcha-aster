@@ -116,7 +116,7 @@ export function ResetPasswordForm() {
 
             // Redirect to login after 3 seconds
             setTimeout(() => {
-                router.push('/login')
+                router.push('/auth/login')
             }, 3000)
         } catch (error) {
             console.error('Reset password error:', error)

@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Sparkles, User, Check, CheckCircle2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -148,25 +147,10 @@ export function SignupForm() {
   }
 
   const handleGoogleSignup = async () => {
-    try {
-      const result = await signIn('google', {
-        callbackUrl: '/dashboard',
-        redirect: false,
-      })
-
-      if (result?.error) {
-        notification.error({
-          message: 'Google Signup Failed',
-          description: 'Could not connect to Google. Please try again.',
-        })
-      }
-    } catch (error) {
-      console.error('Google signup error:', error)
-      notification.error({
-        message: 'External Auth Error',
-        description: 'An error occurred during Google signup. Please try again.',
-      })
-    }
+    notification.info({
+      message: 'Coming Soon',
+      description: 'Social signup is being updated.',
+    })
   }
 
   const passwordStrength = passwordRequirements.filter((req) => req.test(password)).length

@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Search, MoreVertical, Ban, Unlock, Edit, Trash2, Loader2, Eye } from "lucide-react"
+import { Search, MoreVertical, Ban, Unlock, Edit, Trash2, Loader2, Eye, Package, RefreshCw } from "lucide-react"
 import { Suspense } from "react"
 import { useRouter } from "next/navigation"
 import Loading from "./loading"
@@ -25,6 +25,7 @@ interface User {
   status: string
   balance: string
   joined: string
+  image?: string | null
   twoFactorEnabled?: boolean
   isAdmin?: boolean
 }
@@ -50,6 +51,27 @@ export default function AdminUsersContent() {
   const [editForm, setEditForm] = useState({ name: "", balance: "", status: "" })
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
+
+  // Set package modal state
+  const [isPkgModalOpen, setIsPkgModalOpen] = useState(false)
+  const [pkgUser, setPkgUser] = useState<User | null>(null)
+  const [pricingPlans, setPricingPlans] = useState<any[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState("")
+  const [assigningPkg, setAssigningPkg] = useState(false)
+  const [isFreeTrial, setIsFreeTrial] = useState(false)
+
+  // Manage packages modal state
+  const [isPkgManageOpen, setIsPkgManageOpen] = useState(false)
+  const [pkgManageUser, setPkgManageUser] = useState<User | null>(null)
+  const [userPackages, setUserPackages] = useState<any[]>([])
+  const [loadingPackages, setLoadingPackages] = useState(false)
+  const [editingPkgId, setEditingPkgId] = useState<string | null>(null)
+  const [editPkgCredits, setEditPkgCredits] = useState<number>(0)
+  const [savingPkgEdit, setSavingPkgEdit] = useState(false)
+  const [removingPkgId, setRemovingPkgId] = useState<string | null>(null)
+  const [trialDays, setTrialDays] = useState(7)
+  const [trialCredits, setTrialCredits] = useState(50)
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -100,6 +122,73 @@ export default function AdminUsersContent() {
       cancelText: 'Cancel',
       onOk: () => {
         dispatch(deleteAdminUserRequest(userId))
+      }
+    })
+  }
+
+  const openManagePackages = async (user: User) => {
+    setPkgManageUser(user)
+    setIsPkgManageOpen(true)
+    setLoadingPackages(true)
+    try {
+      const res = await fetch(`/api/admin/users/packages?userId=${user.id}`)
+      const data = await res.json()
+      if (data.success) {
+        setUserPackages(data.packages)
+      }
+    } catch {
+      console.error('Failed to fetch packages')
+    } finally {
+      setLoadingPackages(false)
+    }
+  }
+
+  const handleEditPackageCredits = async (pkgId: string) => {
+    setSavingPkgEdit(true)
+    try {
+      const res = await fetch('/api/admin/users/packages', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: pkgId, credits: editPkgCredits }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        message.success(data.message)
+        setUserPackages(prev => prev.map(p => p.id === pkgId ? { ...p, credits: editPkgCredits } : p))
+        setEditingPkgId(null)
+      } else {
+        message.error(data.error || 'Failed to update package')
+      }
+    } catch {
+      message.error('Network error')
+    } finally {
+      setSavingPkgEdit(false)
+    }
+  }
+
+  const handleRemovePackage = async (pkgId: string) => {
+    Modal.confirm({
+      title: 'Remove Package',
+      content: 'Are you sure you want to remove this package from the user?',
+      okText: 'Remove',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        setRemovingPkgId(pkgId)
+        try {
+          const res = await fetch(`/api/admin/users/packages?packageId=${pkgId}`, { method: 'DELETE' })
+          const data = await res.json()
+          if (data.success) {
+            message.success(data.message)
+            setUserPackages(prev => prev.filter(p => p.id !== pkgId))
+          } else {
+            message.error(data.error || 'Failed to remove package')
+          }
+        } catch {
+          message.error('Network error')
+        } finally {
+          setRemovingPkgId(null)
+        }
       }
     })
   }
@@ -174,8 +263,12 @@ export default function AdminUsersContent() {
                           }}
                         >
                           <td className="py-4 px-4">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary mr-3 inline-flex">
-                              {user.name.charAt(0).toUpperCase()}
+                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary mr-3 inline-flex overflow-hidden">
+                              {user.image ? (
+                                <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+                              ) : (
+                                user.name.charAt(0).toUpperCase()
+                              )}
                             </div>
                             {user.name}
                           </td>
@@ -208,6 +301,36 @@ export default function AdminUsersContent() {
                               >
                                 <Eye className="w-3 h-3" />
                                 View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-transparent border-purple-500/50 text-purple-500 hover:bg-purple-500 hover:text-white text-xs gap-1 h-8 px-3"
+                                onClick={() => {
+                                  setPkgUser(user)
+                                  setSelectedPlanId("")
+                                  setPricingPlans([])
+                                  setIsPkgModalOpen(true)
+                                  setLoadingPlans(true)
+                                  fetch('/api/admin/pricing-plans').then(r => r.json()).then(d => {
+                                    if (d.success) {
+                                      setPricingPlans(d.plans)
+                                      if (d.plans.length > 0) setSelectedPlanId(d.plans[0].id)
+                                    }
+                                  }).finally(() => setLoadingPlans(false))
+                                }}
+                              >
+                                <Package className="w-3 h-3" />
+                                Set Pkg
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="bg-transparent border-purple-500/50 text-purple-500 hover:bg-purple-500 hover:text-white text-xs gap-1 h-8 px-3"
+                                onClick={() => openManagePackages(user)}
+                              >
+                                <Package className="w-3 h-3" />
+                                Pkgs
                               </Button>
                               <Button
                                 size="sm"
@@ -418,6 +541,287 @@ export default function AdminUsersContent() {
                 <p className="text-sm text-muted-foreground mt-3 mb-1">Plan</p>
                 <p className="font-semibold text-foreground">{selectedUser.plan}</p>
               </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Set Package Modal */}
+        <Modal
+          title={
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Set Package</h2>
+              <p className="text-sm text-muted-foreground">Assign to {pkgUser?.name || pkgUser?.email}</p>
+            </div>
+          }
+          open={isPkgModalOpen}
+          onCancel={() => setIsPkgModalOpen(false)}
+          footer={[
+            <Button key="cancel" variant="outline" onClick={() => setIsPkgModalOpen(false)} className="bg-transparent" disabled={assigningPkg}>
+              Cancel
+            </Button>,
+            <Button
+              key="submit"
+              className="bg-purple-500 hover:bg-purple-600"
+              onClick={async () => {
+                if (!pkgUser) return
+                if (!isFreeTrial && !selectedPlanId) return
+                setAssigningPkg(true)
+                try {
+                  const body: any = { userId: pkgUser.id }
+                  if (isFreeTrial) {
+                    body.freeTrial = true
+                    body.trialDays = trialDays
+                    body.trialCredits = trialCredits
+                  } else {
+                    body.planId = selectedPlanId
+                  }
+                  const res = await fetch('/api/admin/users/assign-package', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                  })
+                  const data = await res.json()
+                  if (data.success) {
+                    message.success(data.message)
+                    setIsPkgModalOpen(false)
+                  } else {
+                    message.error(data.error || 'Failed to assign package')
+                  }
+                } catch {
+                  message.error('Network error')
+                } finally {
+                  setAssigningPkg(false)
+                }
+              }}
+              disabled={assigningPkg || (!isFreeTrial && !selectedPlanId)}
+            >
+              {assigningPkg ? (
+                <><Loader2 className="w-4 h-4 animate-spin mr-2" />Assigning...</>
+              ) : isFreeTrial ? (
+                'Assign Free Trial'
+              ) : (
+                'Assign Package'
+              )}
+            </Button>,
+          ]}
+          width={700}
+          centered
+        >
+          {/* Free Trial Toggle */}
+          <div className="flex items-center justify-between py-4 border-b border-border">
+            <div>
+              <p className="font-semibold text-foreground">Free Trial</p>
+              <p className="text-sm text-muted-foreground">Assign a free trial package instead</p>
+            </div>
+            <button
+              onClick={() => setIsFreeTrial(!isFreeTrial)}
+              className={`relative w-14 h-7 rounded-full transition-colors ${isFreeTrial ? 'bg-purple-500' : 'bg-gray-300'}`}
+            >
+              <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all ${isFreeTrial ? 'right-1' : 'left-1'}`} />
+            </button>
+          </div>
+
+          {isFreeTrial ? (
+            <div className="space-y-4 py-4">
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-2 block">Trial Duration (Days)</label>
+                <select
+                  value={trialDays}
+                  onChange={(e) => setTrialDays(Number(e.target.value))}
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-foreground outline-none transition-all"
+                >
+                  <option value={3}>3 Days</option>
+                  <option value={7}>7 Days</option>
+                  <option value={14}>14 Days</option>
+                  <option value={30}>30 Days</option>
+                  <option value={60}>60 Days</option>
+                  <option value={90}>90 Days</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-2 block">Trial Credits</label>
+                <input
+                  type="number"
+                  value={trialCredits}
+                  onChange={(e) => setTrialCredits(Number(e.target.value))}
+                  min={1}
+                  className="w-full px-4 py-3 rounded-xl bg-secondary/50 border border-border focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-foreground outline-none transition-all"
+                />
+              </div>
+              <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+                <p className="text-sm text-purple-700 font-semibold">Free Trial Summary</p>
+                <p className="text-sm text-purple-600 mt-1">{trialCredits} credits for {trialDays} days — $0.00</p>
+              </div>
+            </div>
+          ) : loadingPlans ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : pricingPlans.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">No pricing plans found. Create one in Packages first.</div>
+          ) : (
+            <div className="space-y-3 py-4 max-h-96 overflow-y-auto">
+              {pricingPlans.map((plan: any) => (
+                <div
+                  key={plan.id}
+                  onClick={() => setSelectedPlanId(plan.id)}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    selectedPlanId === plan.id
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-border bg-muted/30 hover:border-purple-500/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
+                        selectedPlanId === plan.id ? 'bg-purple-500 text-white' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        <Package className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {plan.type.toUpperCase()} - {plan.code}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {plan.type === 'count' ? `${plan.count?.toLocaleString()} Total Requests` :
+                           plan.type === 'daily' ? `${plan.dailyLimit?.toLocaleString()} / Day` :
+                           `${plan.rateLimit} / Min`} &middot; {plan.validity} Validity
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-foreground">{plan.price}</p>
+                      <p className="text-xs text-muted-foreground">{plan.recognition}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+
+        {/* Manage Packages Modal */}
+        <Modal
+          title={
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Manage Packages</h2>
+              <p className="text-sm text-muted-foreground">Packages for {pkgManageUser?.name || pkgManageUser?.email}</p>
+            </div>
+          }
+          open={isPkgManageOpen}
+          onCancel={() => setIsPkgManageOpen(false)}
+          footer={[
+            <Button key="close" variant="outline" onClick={() => setIsPkgManageOpen(false)} className="bg-transparent">
+              Close
+            </Button>,
+          ]}
+          width={800}
+          centered
+        >
+          {loadingPackages ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : userPackages.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Package className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p className="font-semibold">No packages assigned</p>
+              <p className="text-sm">Use "Set Pkg" to assign a package to this user</p>
+            </div>
+          ) : (
+            <div className="space-y-3 py-4 max-h-[500px] overflow-y-auto">
+              {userPackages.map((pkg: any) => (
+                <div
+                  key={pkg.id}
+                  className="p-4 rounded-xl border border-border bg-muted/30"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                          <Package className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground">{pkg.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {pkg.packageCode} &middot; {pkg.type}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 mt-3">
+                        <div className="p-3 rounded-lg bg-background">
+                          <p className="text-xs text-muted-foreground">Credits</p>
+                          <p className="font-bold text-foreground">{pkg.credits?.toLocaleString()}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background">
+                          <p className="text-xs text-muted-foreground">Used</p>
+                          <p className="font-bold text-amber-500">{pkg.creditsUsed?.toLocaleString()}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-background">
+                          <p className="text-xs text-muted-foreground">Remaining</p>
+                          <p className="font-bold text-green-500">{pkg.creditsRemaining?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span>Status: <span className={`font-semibold ${pkg.status === 'active' ? 'text-green-500' : 'text-red-500'}`}>{pkg.status}</span></span>
+                        {pkg.startDate && <span>Start: {new Date(pkg.startDate).toLocaleDateString()}</span>}
+                        {pkg.endDate && <span>End: {new Date(pkg.endDate).toLocaleDateString()}</span>}
+                        {pkg.price > 0 && <span>Price: ${pkg.price}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      {editingPkgId === pkg.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={editPkgCredits}
+                            onChange={(e) => setEditPkgCredits(Number(e.target.value))}
+                            className="w-20 px-2 py-1 rounded-lg bg-background border border-border text-sm text-center"
+                            min={1}
+                          />
+                          <Button
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white h-8 px-2"
+                            onClick={() => handleEditPackageCredits(pkg.id)}
+                            disabled={savingPkgEdit}
+                          >
+                            {savingPkgEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2"
+                            onClick={() => setEditingPkgId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-transparent border-blue-500/50 text-blue-500 hover:bg-blue-500 hover:text-white h-8 px-3 text-xs"
+                          onClick={() => {
+                            setEditingPkgId(pkg.id)
+                            setEditPkgCredits(pkg.credits)
+                          }}
+                        >
+                          Edit Credits
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-transparent border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white h-8 px-3 text-xs"
+                        onClick={() => handleRemovePackage(pkg.id)}
+                        disabled={removingPkgId === pkg.id}
+                      >
+                        {removingPkgId === pkg.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Modal>

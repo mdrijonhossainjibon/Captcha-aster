@@ -3,7 +3,7 @@
 import { Bell, Search, Settings, User, Moon, Sun, Menu, LayoutDashboard, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { signOut, useSession } from "next-auth/react"
+import { useAuth } from "@/components/AuthProvider"
 import { cn } from "@/lib/utils"
 import {
     DropdownMenu,
@@ -31,7 +31,7 @@ const pageTitles: Record<string, { title: string; description: string }> = {
 }
 
 export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
-    const { data: session } = useSession()
+    const { user, status } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
     const [isDark, setIsDark] = useState(false)
@@ -140,16 +140,16 @@ export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-background" />
                                 </div>
                                 <div className="hidden lg:block text-left">
-                                    <p className="text-sm font-medium text-foreground">{session?.user?.name || "Admin User"}</p>
-                                    <p className="text-xs text-muted-foreground">{session?.user?.role === 'admin' ? 'Super Admin' : 'Admin'}</p>
+                                    <p className="text-sm font-medium text-foreground">{user?.name || "Admin User"}</p>
+                                    <p className="text-xs text-muted-foreground">{user?.role === 'admin' ? 'Super Admin' : 'Admin'}</p>
                                 </div>
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56 mt-2">
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none">{session?.user?.name || "Admin User"}</p>
-                                    <p className="text-xs leading-none text-muted-foreground">{session?.user?.email || "admin@example.com"}</p>
+                                    <p className="text-sm font-medium leading-none">{user?.name || "Admin User"}</p>
+                                    <p className="text-xs leading-none text-muted-foreground">{user?.email || "admin@example.com"}</p>
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
@@ -163,7 +163,11 @@ export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                                onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                                onClick={() => {
+                                  fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                                    window.location.href = '/auth/login'
+                                  })
+                                }}
                                 className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
                             >
                                 <LogOut className="w-4 h-4" />

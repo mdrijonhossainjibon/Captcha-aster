@@ -3,9 +3,9 @@ import type { Metadata } from "next"
 import localFont from "next/font/local"
 import { Geist_Mono } from "next/font/google"
 
-import AuthProvider from "@/components/SessionProvider"
-import { Toaster } from "@/components/ui/toaster"
 import { StoreProvider } from "@/modules/StoreProvider"
+import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from "@/components/AuthProvider"
 import "./globals.css"
 
 // Outfit served locally — no Google Fonts network call
@@ -100,14 +100,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.className} antialiased text-[13.5px] leading-relaxed tracking-tight`}>
         <StoreProvider>
- <AuthProvider>
-  {children}
+          <AuthProvider>
+            {children}
             <Toaster />
- </AuthProvider>
-            
- 
+          </AuthProvider>
         </StoreProvider>
-
       </body>
     </html>
   )

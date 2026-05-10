@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import User from '@/lib/models/User'
 import OTP from '@/lib/models/OTP'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { createToken, setAuthCookie } from '@/services/jwt'
 
 export async function POST(request: NextRequest) {
     try {
@@ -50,15 +48,14 @@ export async function POST(request: NextRequest) {
         await user.save()
 
         // Generate JWT token
-        const token = jwt.sign(
-            {
-                userId: user._id,
-                email: user.email,
-                role: user.role || 'user',
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        )
+        const token = await createToken({
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role || 'user',
+            balance: user.balance,
+        })
+
+        await setAuthCookie(token)
 
         // Delete the used OTP
         await OTP.deleteOne({ _id: otpRecord._id })
@@ -76,7 +73,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             message: 'Email verified successfully',
-            token,
             user: {
                 id: user._id,
                 email: user.email,

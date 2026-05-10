@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
-import { getServerSession } from 'next-auth'
+import { requireAuth } from '@/lib/auth'
 
 /**
  * POST /api/crypto/payout
@@ -9,7 +9,7 @@ import { getServerSession } from 'next-auth'
 export async function POST(request: NextRequest) {
     try {
         // Check authentication
-        const session = await getServerSession()
+        const session = await requireAuth()
         if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
     try {
         // Check authentication
-        const session = await getServerSession()
+        const session = await requireAuth()
         if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },

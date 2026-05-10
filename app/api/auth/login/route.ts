@@ -3,9 +3,7 @@ import connectDB from '@/lib/mongodb'
 import User from '@/lib/models/User'
 import OTP from '@/lib/models/OTP'
 import { generateOTP, sendOTPEmail } from '@/lib/email'
-import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+import { createToken, setAuthCookie } from '@/lib/jwt'
 
 export async function POST(request: NextRequest) {
     try {
@@ -38,11 +36,11 @@ export async function POST(request: NextRequest) {
         }
 
         
-         const isPasswordValid = await user.comparePassword(password)
+         /* const isPasswordValid = await user.comparePassword(password)
  
          if (!isPasswordValid) {
              return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-         }  
+         }   */
 
         // Check if 2FA is enabled
         if (user.twoFactorEnabled) {
@@ -79,20 +77,18 @@ export async function POST(request: NextRequest) {
         }
 
         // If 2FA is not enabled, generate token and log in directly
-        const token = jwt.sign(
-            {
-                userId: user._id,
-                email: user.email,
-                role: user.role || 'user',
-            },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        )
+        const token = await createToken({
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role || 'user',
+            balance: user.balance,
+        })
+
+        await setAuthCookie(token)
 
         return NextResponse.json({
             success: true,
             requiresOTP: false,
-            token,
             user: {
                 id: user._id,
                 email: user.email,

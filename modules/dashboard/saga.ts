@@ -140,7 +140,7 @@ function* fetchExtensionsSaga(): Generator {
     try {
         const { response, status }: APIResponse = yield (call as any)(API_CALL, {
             method: 'GET',
-            url: '/admin/extensions?activeOnly=true'
+            url: '/extensions'
         });
 
         if (status === 200 && response.success) {

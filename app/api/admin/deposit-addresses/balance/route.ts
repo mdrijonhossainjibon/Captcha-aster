@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
-import { syncDepositAddressBalance } from '@/lib/crypto-balance'
+import { syncDepositAddressBalance } from '@/services/crypto-balance'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/admin/deposit-addresses/balance
@@ -18,7 +17,7 @@ import { syncDepositAddressBalance } from '@/lib/crypto-balance'
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
         if (session?.user?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }

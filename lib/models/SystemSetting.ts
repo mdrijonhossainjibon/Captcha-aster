@@ -9,6 +9,12 @@ const SystemSettingSchema = new mongoose.Schema({
     // Wallet Configuration
     mainWalletAddress: { type: String, default: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" },
 
+    // Cache Control
+    cacheControlAws: { type: Boolean, default: true },
+    cacheControlKbs: { type: Boolean, default: true },
+    cacheControlHcaptcha: { type: Boolean, default: true },
+    cacheControlKblogin: { type: Boolean, default: true },
+
     // Security
     twoFARequired: { type: Boolean, default: true },
     ipWhitelist: { type: Boolean, default: false },

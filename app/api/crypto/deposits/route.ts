@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import Deposit from '@/lib/models/Deposit'
 import User from '@/lib/models/User'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 
 /**
  * GET /api/crypto/deposits
@@ -11,9 +10,9 @@ import { authOptions } from '@/lib/auth'
  */
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
 
-        if (!session?.user?.email) {
+        if (!session?.email) {
             return NextResponse.json(
                 {
                     success: false,
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
         await connectDB()
 
         // Find user
-        const user = await User.findOne({ email: session.user.email })
+        const user = await User.findOne({ email: session.email })
         if (!user) {
             return NextResponse.json(
                 {
@@ -85,9 +84,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
 
-        if (!session?.user?.email) {
+        if (!session?.email) {
             return NextResponse.json(
                 {
                     success: false,
@@ -100,7 +99,7 @@ export async function POST(request: NextRequest) {
         await connectDB()
 
         // Find user
-        const user = await User.findOne({ email: session.user.email })
+        const user = await User.findOne({ email: session.email })
         if (!user) {
             return NextResponse.json(
                 {

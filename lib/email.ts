@@ -897,3 +897,91 @@ export async function sendAccountStatusEmail({
     return false
   }
 }
+
+interface SendPackageAssignedEmailParams {
+  email: string
+  name: string
+  packageName: string
+  credits: number
+  validityDays: number
+}
+
+export async function sendPackageAssignedEmail({
+  email,
+  name,
+  packageName,
+  credits,
+  validityDays,
+}: SendPackageAssignedEmailParams): Promise<boolean> {
+  try {
+    const transporter = await getTransporter()
+    const fromEmail = await getFromEmail()
+
+    if (!transporter) {
+      console.log('📧 [DEV MODE] Package Assigned Email for', email)
+      console.log('⚠️  Configure SMTP settings in .env.local for production')
+      return true
+    }
+
+    const subject = `New Package Assigned - ${packageName}`
+    const validityText = validityDays > 0
+      ? `Valid for ${validityDays} day${validityDays > 1 ? 's' : ''}`
+      : ''
+
+    const mailOptions = {
+      from: `"CaptchaⱮaster Support" <${fromEmail}>`,
+      to: email,
+      subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head><meta charset="utf-8"></head>
+          <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;">
+            <table role="presentation" style="width:100%;border-collapse:collapse;">
+              <tr><td align="center" style="padding:40px 0;">
+                <table role="presentation" style="width:600px;border-collapse:collapse;background:#fff;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                  <tr><td style="padding:40px 40px 20px;text-align:center;">
+                    <h1 style="margin:0;color:#1a1a1a;font-size:28px;font-weight:700;">
+                      Captcha<span style="color:#6366f1;">Ɱaster</span>
+                    </h1>
+                  </td></tr>
+                  <tr><td style="padding:20px 40px;">
+                    <h2 style="margin:0 0 20px;color:#1a1a1a;font-size:24px;font-weight:600;">Package Assigned! 🎉</h2>
+                    <p style="margin:0 0 20px;color:#4b5563;font-size:16px;line-height:1.5;">Hi ${name},</p>
+                    <p style="margin:0 0 30px;color:#4b5563;font-size:16px;line-height:1.5;">A new package has been assigned to your account:</p>
+                    <div style="text-align:center;margin:30px 0;padding:24px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:12px;">
+                      <p style="margin:0 0 12px;color:#fff;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Package</p>
+                      <p style="margin:0 0 20px;color:#fff;font-size:28px;font-weight:700;">${packageName}</p>
+                      <div style="display:inline-block;margin:0 12px;padding:12px 24px;background:rgba(255,255,255,0.15);border-radius:8px;">
+                        <p style="margin:0;color:#fff;font-size:12px;font-weight:600;text-transform:uppercase;">Credits</p>
+                        <p style="margin:4px 0 0;color:#fff;font-size:24px;font-weight:700;">${credits.toLocaleString()}</p>
+                      </div>
+                      ${validityText ? `
+                      <div style="display:inline-block;margin:0 12px;padding:12px 24px;background:rgba(255,255,255,0.15);border-radius:8px;">
+                        <p style="margin:0;color:#fff;font-size:12px;font-weight:600;text-transform:uppercase;">Validity</p>
+                        <p style="margin:4px 0 0;color:#fff;font-size:24px;font-weight:700;">${validityText.replace('Valid for ', '')}</p>
+                      </div>` : ''}
+                    </div>
+                    <div style="text-align:center;margin:40px 0;">
+                      <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard" style="display:inline-block;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:12px;font-weight:600;font-size:16px;">Go to Dashboard</a>
+                    </div>
+                  </td></tr>
+                  <tr><td style="padding:30px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+                    <p style="margin:0;color:#9ca3af;font-size:12px;">© ${new Date().getFullYear()} CaptchaⱮaster. All rights reserved.</p>
+                  </td></tr>
+                </table>
+              </td></tr>
+            </table>
+          </body>
+        </html>
+      `,
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log('✅ Package assigned email sent successfully to:', email)
+    return true
+  } catch (error) {
+    console.error('❌ Error sending package assigned email:', error)
+    return false
+  }
+}

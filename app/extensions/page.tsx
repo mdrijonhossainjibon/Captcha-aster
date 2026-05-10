@@ -63,7 +63,7 @@ export default function ExtensionsDownloadPage() {
 
     const fetchExtensions = async () => {
         try {
-            const res = await fetch('/api/admin/extensions?activeOnly=true')
+            const res = await fetch('/api/extensions')
             const data = await res.json()
             if (data.success) {
                 setExtensions(data.extensions)

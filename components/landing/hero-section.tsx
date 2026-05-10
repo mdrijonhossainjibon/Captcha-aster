@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { Play, ArrowRight, Shield, Zap, Clock } from "lucide-react"
+import { Play, ArrowRight, Shield, Zap, Clock, ExternalLink } from "lucide-react"
 import Link from "next/link"
 
 
@@ -81,6 +81,19 @@ export function HeroSection() {
                 <Play className="w-4 sm:w-5 h-4 sm:h-5" />
                 Watch Demo
               </Button>
+            </div>
+
+            {/* App Download Links */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
+              <a
+                href="http://localhost:3001"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border hover:border-primary/30 hover:bg-accent/50 transition-all text-sm font-medium"
+              >
+                <ExternalLink className="w-4 h-4 text-primary" />
+                Open CaptchaMaster App
+              </a>
             </div>
 
             {/* Trust badges */}

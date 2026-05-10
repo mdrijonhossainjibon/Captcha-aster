@@ -26,15 +26,38 @@ export async function GET(request: NextRequest) {
         const query: any = {}
         if (activeOnly) query.isActive = true
 
-        const extensions = await Extension.find(query).sort({ createdAt: -1 })
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
+        const skip = (page - 1) * limit
+
+        const [extensions, total, active] = await Promise.all([
+            Extension.find(query)
+                .select('name description version platform fileName originalName fileSize fileType downloadUrl iconUrl downloads isActive createdAt')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Extension.countDocuments(),
+            Extension.countDocuments({ isActive: true }),
+        ])
 
         const stats = {
-            total: await Extension.countDocuments(),
-            active: await Extension.countDocuments({ isActive: true }),
+            total,
+            active,
             totalDownloads: extensions.reduce((sum: number, ext: any) => sum + (ext.downloads || 0), 0),
         }
 
-        return NextResponse.json({ success: true, extensions, stats })
+        return NextResponse.json({
+            success: true,
+            extensions,
+            stats,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            }
+        })
     } catch (error) {
         console.error('GET extensions error:', error)
         return NextResponse.json({ success: false, error: 'Failed to fetch extensions' }, { status: 500 })

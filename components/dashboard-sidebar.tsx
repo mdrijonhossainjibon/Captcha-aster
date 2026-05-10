@@ -26,7 +26,7 @@ import {
   Share2,
   X,
 } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import { useAuth } from "@/components/AuthProvider"
 import { Button } from "@/components/ui/button"
 
 const mainNavItems = [
@@ -50,7 +50,7 @@ interface DashboardSidebarProps {
 }
 
 export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }: DashboardSidebarProps = {}) {
-  const { data: session } = useSession()
+  const { user, loading } = useAuth()
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
 
@@ -245,15 +245,19 @@ export function DashboardSidebar({ isMobileMenuOpen = false, onCloseMobileMenu }
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
-              {session?.user?.name || "User"}
+              {user?.name || "User"}
             </p>
             <p className="text-xs text-muted-foreground truncate">
-              {(session?.user as any)?.role === 'admin' ? "Admin Member" : "Pro Member"}
+              {user?.role === 'admin' ? "Admin Member" : "Pro Member"}
             </p>
           </div>
 
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => {
+              fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                window.location.href = '/'
+              })
+            }}
             className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
             title="Logout"
           >

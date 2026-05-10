@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
                 day: '2-digit'
             }),
             twoFactorEnabled: user.twoFactorEnabled,
+            image: user.image || null,
             role: user.role || 'user'
         }))
 

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import CryptoConfig, { INetwork } from '@/lib/models/CryptoConfig'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 
 /**
  * GET /api/crypto/config
@@ -11,8 +10,8 @@ import { authOptions } from '@/lib/auth'
 export async function GET() {
     try {
         await connectDB()
-        const session = await getServerSession(authOptions)
-        const isAdmin = session?.user?.role === 'admin'
+        const session = await requireAuth()
+        const isAdmin = session?.role === 'admin'
 
         const query = isAdmin ? {} : { isActive: true }
         const cryptoConfigs = await CryptoConfig.find(query)
@@ -47,8 +46,8 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
-        if (session?.user?.role !== 'admin') {
+        const session = await requireAuth()
+        if (session?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -122,8 +121,8 @@ export async function POST(request: NextRequest) {
 }
 export async function DELETE(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
-        if (session?.user?.role !== 'admin') {
+        const session = await requireAuth()
+        if (session?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 

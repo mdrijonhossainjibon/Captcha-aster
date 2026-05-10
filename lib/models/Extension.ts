@@ -38,4 +38,8 @@ const ExtensionSchema: Schema = new Schema(
     { timestamps: true }
 )
 
+// Indexes for common queries
+ExtensionSchema.index({ isActive: 1, createdAt: -1 })
+ExtensionSchema.index({ isActive: 1, platform: 1, createdAt: -1 })
+
 export default mongoose.models.Extension || mongoose.model<IExtension>('Extension', ExtensionSchema)

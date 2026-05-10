@@ -27,10 +27,10 @@ import {
   Package,
   Users
 } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { RootState } from "@/modules/rootReducer"
 import * as dashboardActions from "@/modules/dashboard/actions"
+import { useAuth } from "@/components/AuthProvider"
 
 interface Extension {
   _id: string
@@ -63,7 +63,7 @@ export function Navbar() {
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const accountRef = useRef<HTMLDivElement>(null)
-  const { data: session, status } = useSession();
+  const { user: session, status } = useAuth();
   const dispatch = useDispatch()
 
   // Redux state
@@ -238,8 +238,8 @@ export function Navbar() {
                   {accountDropdownOpen && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-background/95 backdrop-blur-lg border border-border rounded-xl shadow-xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                       <div className="px-4 py-3 border-b border-border mb-1">
-                        <p className="text-sm font-medium text-foreground truncate">{session?.user?.name || "User"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+                        <p className="text-sm font-medium text-foreground truncate">{session?.name || "User"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{session?.email}</p>
                       </div>
 
                       <Link
@@ -263,7 +263,10 @@ export function Navbar() {
                       <div className="h-px bg-border my-1" />
 
                       <button
-                        onClick={() => signOut({ callbackUrl: '/' })}
+                        onClick={async () => {
+                          await fetch('/api/auth/logout', { method: 'POST' });
+                          window.location.href = '/';
+                        }}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
@@ -350,7 +353,7 @@ export function Navbar() {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{session?.user?.name || "User"}</p>
+                    <p className="text-sm font-bold text-foreground truncate">{session?.name || "User"}</p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <Wallet className="w-3.5 h-3.5 text-primary" />
                       <span className="text-xs font-bold text-foreground">${balance.toFixed(4)}</span>
@@ -377,7 +380,10 @@ export function Navbar() {
                     })}
 
                     <button
-                      onClick={() => signOut({ callbackUrl: '/' })}
+                      onClick={async () => {
+                        await fetch('/api/auth/logout', { method: 'POST' });
+                        window.location.href = '/';
+                      }}
                       className="flex items-center gap-3 w-full text-destructive hover:bg-destructive/10 transition-all py-3.5 px-4 rounded-xl group font-medium"
                     >
                       <LogOut className="w-5 h-5" />

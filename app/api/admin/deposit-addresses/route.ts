@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import connectDB from '@/lib/mongodb'
 import DepositAddress from '@/lib/models/DepositAddress'
 import User from '@/lib/models/User'
-import { syncDepositAddressBalance } from '@/lib/crypto-balance'
+import { syncDepositAddressBalance } from '@/services/crypto-balance'
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
         if (session?.user?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
@@ -90,7 +89,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
         if (session?.user?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
@@ -112,7 +111,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
         if (session?.user?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Database, Loader2, Eye, Trash2 } from "lucide-react"
+import { Database, Loader2, Eye, Trash2, Download } from "lucide-react"
 import { Solution, Pagination, TYPE_ICONS, TYPE_COLORS, SERVICE_COLORS, b64ToSrc, formatSolution } from "./_types"
 
 // ── Solutions Table ───────────────────────────────────────────────────────────
@@ -16,6 +16,23 @@ interface TableProps {
 }
 
 export function SolutionsTable({ solutions, loading, pagination, onRowClick, onDelete }: TableProps) {
+    const handleDownload = (sol: Solution, e: React.MouseEvent) => {
+        e.stopPropagation()
+        const images = [...(sol.imageData || []), ...(sol.examples || [])]
+        if (images.length === 0) return
+
+        images.forEach((b64, idx) => {
+            const src = b64.startsWith('data:') ? b64 : `data:image/png;base64,${b64}`
+            const a = document.createElement('a')
+            a.href = src
+            const label = idx < (sol.imageData?.length || 0) ? 'img' : 'ref'
+            a.download = `${sol.hash}-${label}-${idx + 1}.png`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+        })
+    }
+
     return (
         <Card>
             <CardHeader className="pb-3">
@@ -107,11 +124,18 @@ export function SolutionsTable({ solutions, loading, pagination, onRowClick, onD
                                                 {new Date(sol.createdAt).toLocaleString('en-US', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                             </td>
                                             <td className="py-2.5 px-3" onClick={e => e.stopPropagation()}>
-                                                <Button size="sm" variant="outline"
-                                                    className="bg-transparent border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white h-7 w-7 p-0"
-                                                    onClick={(e) => onDelete(sol.id, e)}>
-                                                    <Trash2 className="w-3 h-3" />
-                                                </Button>
+                                                <div className="flex items-center gap-1">
+                                                    <Button size="sm" variant="outline"
+                                                        className="bg-transparent border-blue-500/40 text-blue-500 hover:bg-blue-500 hover:text-white h-7 w-7 p-0"
+                                                        onClick={(e) => handleDownload(sol, e)}>
+                                                        <Download className="w-3 h-3" />
+                                                    </Button>
+                                                    <Button size="sm" variant="outline"
+                                                        className="bg-transparent border-red-500/40 text-red-500 hover:bg-red-500 hover:text-white h-7 w-7 p-0"
+                                                        onClick={(e) => onDelete(sol.id, e)}>
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     )

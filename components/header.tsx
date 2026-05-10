@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Clock, RefreshCw, AlertTriangle, Bell, User, MoreVertical, Puzzle, ArrowUpRight, Download, Code, Wallet, Loader2, Gift, LogOut, Shield, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { signOut, useSession } from "next-auth/react"
+import { useAuth } from "@/components/AuthProvider"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchDashboardDataRequest, fetchExtensionsRequest } from "@/modules/dashboard/actions"
 import { IExtension } from "@/lib/models/Extension"
@@ -23,28 +23,28 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuToggle }: HeaderProps = {}) {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const dispatch = useDispatch()
-  
+
   const { userData, loading: isLoadingBalance, extensions } = useSelector((state: any) => state.dashboard)
   const balance = userData?.balance || 0
 
-  const isAdmin = session?.user?.role === "admin"
+  const isAdmin = user?.role === "admin"
 
   useEffect(() => {
-    if (session) {
+    if (user) {
       dispatch(fetchDashboardDataRequest())
       dispatch(fetchExtensionsRequest())
     }
     // Optional: set up interval to refresh balance every 30s
     const interval = setInterval(() => {
-      if (session) {
+      if (user) {
         dispatch(fetchDashboardDataRequest())
         dispatch(fetchExtensionsRequest())
       }
     }, 30000)
     return () => clearInterval(interval)
-  }, [session, dispatch])
+  }, [user, dispatch])
 
 
   return (
@@ -175,8 +175,8 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl border-border bg-card/95 backdrop-blur-md shadow-xl">
                   <DropdownMenuLabel className="p-2">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium text-foreground leading-none">{session?.user?.name || "User"}</p>
-                      <p className="text-xs text-muted-foreground leading-none truncate">{session?.user?.email}</p>
+                      <p className="text-sm font-medium text-foreground leading-none">{user?.name || "User"}</p>
+                      <p className="text-xs text-muted-foreground leading-none truncate">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50" />
@@ -200,7 +200,11 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
                   <DropdownMenuSeparator className="bg-border/50" />
 
                   <DropdownMenuItem
-                    onClick={() => signOut({ callbackUrl: '/auth/login' })}
+                    onClick={() => {
+                      fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                        window.location.href = '/auth/login'
+                      })
+                    }}
                     className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors group"
                   >
                     <LogOut className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

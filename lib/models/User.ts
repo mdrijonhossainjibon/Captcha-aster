@@ -5,6 +5,7 @@ export interface IUser extends Document {
     email: string
     password: string
     name?: string
+    image?: string
     twoFactorEnabled: boolean
     balance: number
     isActive: boolean
@@ -39,6 +40,10 @@ const UserSchema: Schema<IUser> = new Schema(
         name: {
             type: String,
             trim: true,
+        },
+        image: {
+            type: String,
+            default: null,
         },
         twoFactorEnabled: {
             type: Boolean,

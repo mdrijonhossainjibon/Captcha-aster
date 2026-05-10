@@ -36,13 +36,11 @@ import {
   Activity,
   Wallet,
   History,
-  Bot,
-  TrendingUp,
-  Server,
-  HeartPulse,
   Puzzle,
+  Upload,
+  Gift,
 } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import { useAuth } from "@/components/AuthProvider"
 
 const mainNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -59,15 +57,10 @@ const managementItems = [
   { href: "/admin/deposit-addresses", label: "Deposit Wallets", icon: Shield },
   { href: "/admin/crypto", label: "Crypto Config", icon: Zap },
   { href: "/admin/topup-history", label: "Topup History", icon: History },
-]
-
-
-
-const aiTrainingItems = [
-  { href: "/admin/ai-training/bots", label: "Bot Management", icon: Bot },
-  { href: "/admin/ai-training/bot-endpoints", label: "Bot Endpoints", icon: Server },
-  { href: "/admin/ai-training/health-check", label: "Health Check", icon: HeartPulse },
-  { href: "/admin/ai-training/training-data", label: "Training Data", icon: Database }
+  { href: "/admin/history", label: "All History", icon: FileText },
+  { href: "/admin/upload-model", label: "Upload Model", icon: Upload },
+  { href: "/admin/cache-control", label: "Cache Control", icon: RefreshCw },
+  { href: "/admin/redeem-codes", label: "Redeem Codes", icon: Gift },
 ]
 
 const systemItems = [
@@ -81,7 +74,7 @@ const systemItems = [
 
 
 export function AdminSidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (open: boolean) => void }) {
-  const { data: session, status } = useSession();
+  const { user, status } = useAuth();
   const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
 
@@ -100,7 +93,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen
     </div>
   }
 
-  if (session?.user?.role !== 'admin') {
+  if (user?.role !== 'admin') {
     redirect('/dashboard')
   }
 
@@ -225,18 +218,6 @@ export function AdminSidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen
             </div>
           </div>
 
-          {/* AI Training Section */}
-          <div>
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              AI Training
-            </p>
-            <div className="space-y-2">
-              {aiTrainingItems.map((item, idx) => (
-                <NavItem key={item.href} item={item} index={mainNavItems.length + managementItems.length + idx} />
-              ))}
-            </div>
-          </div>
-
           {/* System Section */}
           <div>
             <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -247,7 +228,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen
                 <NavItem
                   key={item.href}
                   item={item}
-                  index={mainNavItems.length + managementItems.length + aiTrainingItems.length + idx}
+                  index={mainNavItems.length + managementItems.length + idx}
                 />
               ))}
             </div>
@@ -260,33 +241,6 @@ export function AdminSidebar({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen
 
         {/* User section */}
         <div className="p-3 border-t border-border">
-          <div
-            className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 transition-all duration-300"
-          >
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center text-sm font-bold">
-                AD
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {session?.user?.name || "Admin"}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                Super Admin
-              </p>
-            </div>
-
-            <button
-              onClick={() => signOut({ callbackUrl: '/auth/login' })}
-              className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
         {/* Decorative elements */}

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongodb'
 import DepositAddress from '@/lib/models/DepositAddress'
 import CryptoConfig from '@/lib/models/CryptoConfig'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 
 /**
  * GET /api/crypto/address?cryptoId=usdt&networkId=bsc
@@ -11,9 +10,9 @@ import { authOptions } from '@/lib/auth'
  */
 export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions)
+        const session = await requireAuth()
 
-        if (!session?.user?.email) {
+        if (!session?.email) {
             return NextResponse.json(
                 {
                     success: false,
@@ -64,19 +63,19 @@ export async function GET(request: NextRequest) {
 
         // 1. Check if user already has an address for this specific crypto/network
         let depositAddr = await DepositAddress.findOne({
-            userId: session.user.id,
+            userId: session.userId,
             cryptoId,
             networkId
         })
 
         if (!depositAddr) {
             // 2. Check if user has ANY deposit address to reuse for this new asset
-            const existingAny = await DepositAddress.findOne({ userId: session.user.id })
+            const existingAny = await DepositAddress.findOne({ userId: session.userId })
 
             if (existingAny) {
                 // Reuse existing address and private key
                 depositAddr = await DepositAddress.create({
-                    userId: session.user.id,
+                    userId: session.userId,
                     cryptoId,
                     networkId,
                     address: existingAny.address,
@@ -89,7 +88,7 @@ export async function GET(request: NextRequest) {
                 const wallet = Wallet.createRandom()
 
                 depositAddr = await DepositAddress.create({
-                    userId: session.user.id,
+                    userId: session.userId,
                     cryptoId,
                     networkId,
                     address: wallet.address,
