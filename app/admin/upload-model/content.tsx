@@ -331,7 +331,13 @@ export default function UploadModelContent() {
 
     const fetchEndpoints = async () => {
         try {
-            const res = await fetch("/api/admin/bot-endpoints")
+            const res = await fetch("/api/admin/bot-endpoints", {
+                headers: {
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    Pragma: "no-cache",
+                    Expires: "0",
+                },
+            })
             const data = await res.json()
             if (data.success) {
                 setEndpoints(data.endpoints)
@@ -364,8 +370,8 @@ export default function UploadModelContent() {
             return
         }
 
-        // Upload to Next.js API — not directly to bot
-        const url = `/api/admin/upload-model/${modelType}`
+        // Upload DIRECTLY to bot endpoint
+        const url = `${endpoint.protocol}://${endpoint.endpoint}:${endpoint.port}/upload-model`
 
         const formData = new FormData()
         formData.append("file", file)
@@ -374,6 +380,12 @@ export default function UploadModelContent() {
 
         return new Promise<void>((resolve, reject) => {
             const xhr = new XMLHttpRequest()
+            xhr.open("POST", url)
+
+            // Cache Control
+            xhr.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+            xhr.setRequestHeader("Pragma", "no-cache")
+            xhr.setRequestHeader("Expires", "0")
 
             xhr.upload.addEventListener("progress", (event) => {
                 if (event.lengthComputable) {
@@ -396,34 +408,28 @@ export default function UploadModelContent() {
                         setState({
                             phase: "done",
                             progress: 100,
-                            message: data.processing?.success
-                                ? "Bot processing complete"
-                                : "Model saved",
-                            botResult: data.processing || null,
+                            message: "Bot processing complete",
+                            botResult: data,
                         })
 
-                        const botMsg = data.processing?.success
-                            ? `${file.name} uploaded & processed by ${modelType.toUpperCase()} bot successfully.`
-                            : data.processing
-                                ? `${file.name} saved. Bot processing: ${data.processing.error || "unavailable"}`
-                                : `${file.name} uploaded & saved successfully.`
+                        const botMsg = `${file.name} uploaded & processed by ${modelType.toUpperCase()} bot successfully.`
 
                         toast({
-                            title: data.processing?.success ? "Success ✓" : "Saved (bot offline?)",
+                            title: "Success ✓",
                             description: botMsg,
-                            variant: data.processing?.success ? "default" : "destructive",
+                            variant: "default",
                         })
                         resolve()
                     } else {
                         setState({
                             phase: "error",
                             progress: 0,
-                            message: data.error || "Upload failed",
+                            message: data.error || "Bot rejected upload",
                             botResult: null,
                         })
                         toast({
                             title: "Upload Failed",
-                            description: data.error || "Something went wrong.",
+                            description: data.error || "Something went wrong on the bot.",
                             variant: "destructive",
                         })
                         reject()
@@ -468,7 +474,6 @@ export default function UploadModelContent() {
                 reject()
             })
 
-            xhr.open("POST", url)
             xhr.send(formData)
         })
     }
