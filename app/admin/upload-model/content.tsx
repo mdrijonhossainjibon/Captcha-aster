@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Dispatch, SetStateAction } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, File, Loader2, Cloud, Database } from "lucide-react"
+import { Upload, File, Loader2, Cloud, Database, CheckCircle2, AlertCircle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,15 @@ interface BotEndpoint {
     port: number
     protocol: string
     isActive: boolean
+}
+
+type UploadPhase = "idle" | "uploading" | "processing" | "done" | "error"
+
+interface UploadState {
+    phase: UploadPhase
+    progress: number
+    message: string
+    botResult: any | null
 }
 
 function UploadCard({
@@ -30,7 +39,7 @@ function UploadCard({
     file,
     onFileChange,
     onUpload,
-    uploading,
+    uploadState,
 }: {
     title: string
     description: string
@@ -45,8 +54,41 @@ function UploadCard({
     file: File | null
     onFileChange: (f: File | null) => void
     onUpload: () => void
-    uploading: boolean
+    uploadState: UploadState
 }) {
+    const isBusy = uploadState.phase === "uploading" || uploadState.phase === "processing"
+    const [isDragOver, setIsDragOver] = useState(false)
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragOver(true)
+    }
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragOver(false)
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragOver(false)
+
+        const droppedFile = e.dataTransfer.files?.[0]
+        if (droppedFile && droppedFile.name.endsWith(".pt")) {
+            onFileChange(droppedFile)
+        } else if (droppedFile) {
+            toast({ title: "Invalid File", description: "Only .pt files are allowed.", variant: "destructive" })
+        }
+    }
+
     return (
         <Card className="border-border/60 overflow-hidden">
             <div className={`h-1.5 w-full bg-gradient-to-r ${accent}`} />
@@ -145,8 +187,16 @@ function UploadCard({
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Model File (.pt)</label>
                     <div
-                        className="relative border-2 border-dashed border-border rounded-xl p-6 text-center transition-colors hover:border-primary/40 cursor-pointer"
+                        className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
+                            isDragOver
+                                ? "border-primary border-solid bg-primary/5 scale-[1.02]"
+                                : "border-border hover:border-primary/40"
+                        }`}
                         onClick={() => document.getElementById(`upload-${uploadTarget}`)?.click()}
+                        onDragOver={handleDragOver}
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
                     >
                         <input
                             id={`upload-${uploadTarget}`}
@@ -168,14 +218,14 @@ function UploadCard({
                                 <File className="w-8 h-8 text-primary" />
                                 <p className="text-sm font-medium text-foreground truncate max-w-full">{file.name}</p>
                                 <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onFileChange(null) }}>
+                                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onFileChange(null) }} disabled={isBusy}>
                                     Remove
                                 </Button>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2">
                                 <Upload className="w-8 h-8 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground">Drop .pt file or click to browse</p>
+                                <p className="text-sm text-muted-foreground">Drop or click to browse .pt files</p>
                             </div>
                         )}
                     </div>
@@ -183,13 +233,18 @@ function UploadCard({
 
                 <Button
                     onClick={onUpload}
-                    disabled={!file || uploading}
+                    disabled={!file || isBusy}
                     className="w-full h-11 rounded-xl font-semibold"
                 >
-                    {uploading ? (
+                    {uploadState.phase === "uploading" ? (
                         <div className="flex items-center gap-2">
                             <Loader2 className="w-4 h-4 animate-spin" />
                             Uploading...
+                        </div>
+                    ) : uploadState.phase === "processing" ? (
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Processing...
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">
@@ -198,6 +253,59 @@ function UploadCard({
                         </div>
                     )}
                 </Button>
+
+                {/* Phase-based progress display */}
+                {uploadState.phase === "uploading" && (
+                    <div className="space-y-2">
+                        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-primary transition-all duration-300 ease-out"
+                                style={{ width: `${uploadState.progress}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            <span>Uploading...</span>
+                            <span>{uploadState.progress}%</span>
+                        </div>
+                    </div>
+                )}
+
+                {uploadState.phase === "processing" && (
+                    <div className="space-y-2">
+                        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-500 animate-pulse rounded-full" style={{ width: "100%" }} />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>Server processing...</span>
+                            </div>
+                            {uploadState.message && (
+                                <span className="text-[9px]">{uploadState.message}</span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {uploadState.phase === "done" && (
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                                {uploadState.botResult?.success
+                                    ? "Model uploaded & processed on bot"
+                                    : "Model uploaded & saved locally"}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {uploadState.phase === "error" && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                        <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                        <span className="text-xs text-red-600 dark:text-red-400">{uploadState.message || "Upload failed"}</span>
+                    </div>
+                )}
             </CardContent>
         </Card>
     )
@@ -211,9 +319,10 @@ export default function UploadModelContent() {
     const [awsEndpointId, setAwsEndpointId] = useState("")
     const [kbsEndpointId, setKbsEndpointId] = useState("")
     const [awsFile, setAwsFile] = useState<File | null>(null)
-    const [uploadingAws, setUploadingAws] = useState(false)
     const [kbsFile, setKbsFile] = useState<File | null>(null)
-    const [uploadingKbs, setUploadingKbs] = useState(false)
+
+    const [awsState, setAwsState] = useState<UploadState>({ phase: "idle", progress: 0, message: "", botResult: null })
+    const [kbsState, setKbsState] = useState<UploadState>({ phase: "idle", progress: 0, message: "", botResult: null })
 
     useEffect(() => {
         setIsVisible(true)
@@ -238,22 +347,146 @@ export default function UploadModelContent() {
         }
     }
 
-    const doUpload = async (url: string, file: File, endpointId?: string, onDone?: () => void) => {
+    const doUpload = async (
+        file: File,
+        modelType: "aws" | "kbs",
+        endpointId: string | undefined,
+        setState: Dispatch<SetStateAction<UploadState>>
+    ) => {
+        if (!endpointId) {
+            toast({ title: "Error", description: "Please select an endpoint first.", variant: "destructive" })
+            return
+        }
+
+        const endpoint = endpoints.find(ep => ep._id === endpointId)
+        if (!endpoint) {
+            toast({ title: "Error", description: "Selected endpoint not found.", variant: "destructive" })
+            return
+        }
+
+        // Upload to Next.js API — not directly to bot
+        const url = `/api/admin/upload-model/${modelType}`
+
         const formData = new FormData()
         formData.append("file", file)
-        if (endpointId) formData.append("botEndpointId", endpointId)
+        formData.append("botEndpointId", endpointId)
+        formData.append("modelType", modelType)
+
+        return new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest()
+
+            xhr.upload.addEventListener("progress", (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100)
+                    setState({
+                        phase: "uploading",
+                        progress: percent,
+                        message: "",
+                        botResult: null,
+                    })
+                }
+            })
+
+            xhr.addEventListener("load", () => {
+                try {
+                    const data = JSON.parse(xhr.responseText)
+
+                    if (data.success) {
+                        // Upload complete — show done with real bot result
+                        setState({
+                            phase: "done",
+                            progress: 100,
+                            message: data.processing?.success
+                                ? "Bot processing complete"
+                                : "Model saved",
+                            botResult: data.processing || null,
+                        })
+
+                        const botMsg = data.processing?.success
+                            ? `${file.name} uploaded & processed by ${modelType.toUpperCase()} bot successfully.`
+                            : data.processing
+                                ? `${file.name} saved. Bot processing: ${data.processing.error || "unavailable"}`
+                                : `${file.name} uploaded & saved successfully.`
+
+                        toast({
+                            title: data.processing?.success ? "Success ✓" : "Saved (bot offline?)",
+                            description: botMsg,
+                            variant: data.processing?.success ? "default" : "destructive",
+                        })
+                        resolve()
+                    } else {
+                        setState({
+                            phase: "error",
+                            progress: 0,
+                            message: data.error || "Upload failed",
+                            botResult: null,
+                        })
+                        toast({
+                            title: "Upload Failed",
+                            description: data.error || "Something went wrong.",
+                            variant: "destructive",
+                        })
+                        reject()
+                    }
+                } catch {
+                    setState({
+                        phase: "error",
+                        progress: 0,
+                        message: "Failed to parse server response",
+                        botResult: null,
+                    })
+                    toast({
+                        title: "Error",
+                        description: "Failed to parse server response.",
+                        variant: "destructive",
+                    })
+                    reject()
+                }
+            })
+
+            xhr.upload.addEventListener("load", () => {
+                // Upload finished (100% sent), server is now processing
+                setState(prev => ({
+                    ...prev,
+                    phase: "processing",
+                    message: "Bot processing model...",
+                }))
+            })
+
+            xhr.addEventListener("error", () => {
+                setState({
+                    phase: "error",
+                    progress: 0,
+                    message: "Network error. Please try again.",
+                    botResult: null,
+                })
+                toast({
+                    title: "Error",
+                    description: "Network error. Please try again.",
+                    variant: "destructive",
+                })
+                reject()
+            })
+
+            xhr.open("POST", url)
+            xhr.send(formData)
+        })
+    }
+
+    const handleUpload = async (modelType: "aws" | "kbs") => {
+        const file = modelType === "aws" ? awsFile : kbsFile
+        const endpointId = modelType === "aws" ? awsEndpointId : kbsEndpointId
+        const setState = modelType === "aws" ? setAwsState : setKbsState
+
+        if (!file) return
+
+        // Reset
+        setState({ phase: "uploading", progress: 0, message: "", botResult: null })
 
         try {
-            const res = await fetch(url, { method: "POST", body: formData })
-            const data = await res.json()
-            if (data.success) {
-                toast({ title: "Upload Successful", description: `${file.name} uploaded successfully.` })
-                onDone?.()
-            } else {
-                toast({ title: "Upload Failed", description: data.error || "Something went wrong.", variant: "destructive" })
-            }
+            await doUpload(file, modelType, endpointId, setState)
         } catch {
-            toast({ title: "Error", description: "Network error. Please try again.", variant: "destructive" })
+            // Error state already set by doUpload
         }
     }
 
@@ -269,12 +502,11 @@ export default function UploadModelContent() {
             <div>
                 <h1 className="text-2xl font-bold text-foreground">Upload Model</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Upload .pt model files to AWS or KBS
+                    Upload .pt model files — processed by actual bot endpoint (no mock)
                 </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* AWS Card */}
                 <UploadCard
                     title="AWS"
                     description="Upload model to AWS cloud"
@@ -287,17 +519,14 @@ export default function UploadModelContent() {
                     onEndpointChange={setAwsEndpointId}
                     uploadTarget="aws"
                     file={awsFile}
-                    onFileChange={setAwsFile}
-                    uploading={uploadingAws}
-                    onUpload={async () => {
-                        if (!awsFile) return
-                        setUploadingAws(true)
-                        await doUpload("/api/admin/upload-model/aws", awsFile, awsEndpointId, () => setAwsFile(null))
-                        setUploadingAws(false)
+                    onFileChange={(f) => {
+                        setAwsFile(f)
+                        if (f) setAwsState({ phase: "idle", progress: 0, message: "", botResult: null })
                     }}
+                    uploadState={awsState}
+                    onUpload={() => handleUpload("aws")}
                 />
 
-                {/* KBS Card */}
                 <UploadCard
                     title="KBS"
                     description="Upload model to KBS"
@@ -310,14 +539,12 @@ export default function UploadModelContent() {
                     onEndpointChange={setKbsEndpointId}
                     uploadTarget="kbs"
                     file={kbsFile}
-                    onFileChange={setKbsFile}
-                    uploading={uploadingKbs}
-                    onUpload={async () => {
-                        if (!kbsFile) return
-                        setUploadingKbs(true)
-                        await doUpload("/api/admin/upload-model/kbs", kbsFile, kbsEndpointId, () => setKbsFile(null))
-                        setUploadingKbs(false)
+                    onFileChange={(f) => {
+                        setKbsFile(f)
+                        if (f) setKbsState({ phase: "idle", progress: 0, message: "", botResult: null })
                     }}
+                    uploadState={kbsState}
+                    onUpload={() => handleUpload("kbs")}
                 />
             </div>
         </div>

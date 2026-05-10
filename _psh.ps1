@@ -1,1 +1,0 @@
-$content = @`r`n'`r`nconst a=1`r`n'@`r`nWrite-Host $content

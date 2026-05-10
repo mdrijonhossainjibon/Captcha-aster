@@ -39,6 +39,7 @@ import {
   Puzzle,
   Upload,
   Gift,
+  Bot,
 } from "lucide-react"
 import { useAuth } from "@/components/AuthProvider"
 
@@ -58,6 +59,7 @@ const managementItems = [
   { href: "/admin/crypto", label: "Crypto Config", icon: Zap },
   { href: "/admin/topup-history", label: "Topup History", icon: History },
   { href: "/admin/history", label: "All History", icon: FileText },
+  { href: "/admin/ai-training/bot-endpoints", label: "Bot Endpoints", icon: Bot },
   { href: "/admin/upload-model", label: "Upload Model", icon: Upload },
   { href: "/admin/cache-control", label: "Cache Control", icon: RefreshCw },
   { href: "/admin/redeem-codes", label: "Redeem Codes", icon: Gift },
