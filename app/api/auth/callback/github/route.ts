@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET
-const REDIRECT_URI = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/github`
+const REDIRECT_URI = `${(process.env.NEXTAUTH_URL || 'http://localhost:3000').replace(/^https:\/\/(localhost|127\.0\.0\.1)/, 'http://$1')}/api/auth/callback/github`
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
