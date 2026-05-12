@@ -18,7 +18,7 @@ import { syncDepositAddressBalance } from '@/services/crypto-balance'
 export async function POST(request: NextRequest) {
     try {
         const session = await requireAuth()
-        if (session?.user?.role !== 'admin') {
+        if (session?.role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
